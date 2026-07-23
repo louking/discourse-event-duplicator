@@ -1,0 +1,10 @@
+{{! Placeholder page for reviewing/editing proposed dates before duplicating. }}
+<div class="event-duplicator-page">
+  <h2>{{i18n "event_duplicator.review.title" tag=this.model.tagName}}</h2>
+
+  <EventDuplicatorReview
+    @topics={{this.model.topics}}
+    @isDuplicating={{this.isDuplicating}}
+    @onConfirm={{this.confirmDuplication}}
+  />
+</div>

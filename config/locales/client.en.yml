@@ -1,0 +1,9 @@
+en:
+  js:
+    event_duplicator:
+      review:
+        title: "Duplicate events: %{tag}"
+        topic: "Topic"
+        proposed_date: "Proposed date"
+        no_topics: "No matching topics found."
+        confirm: "Duplicate selected"

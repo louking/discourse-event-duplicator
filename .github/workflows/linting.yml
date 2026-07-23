@@ -1,0 +1,11 @@
+name: Linting
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  lint:
+    uses: discourse/.github/.github/workflows/plugin-linting.yml@v1

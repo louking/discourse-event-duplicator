@@ -1,0 +1,6 @@
+# Maps Discourse core versions to compatible plugin commits/tags, newest first.
+# Format: "<= discourse_version": "plugin_git_ref"
+# See: https://meta.discourse.org/t/discourse-compatibility-file/243671
+#
+# No constraints yet — this plugin currently targets the latest `main` of
+# both discourse-calendar and Discourse core.
