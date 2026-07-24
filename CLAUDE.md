@@ -35,8 +35,13 @@ From this repo's own directory (JS tooling is self-contained via `package.json`)
 yarn eslint assets/javascripts        # or: npm run lint
 ```
 
-CI (`.github/workflows/linting.yml`) delegates to Discourse's shared `plugin-linting.yml` reusable workflow,
-which runs both the Ruby and JS lints above plus `ember-template-lint` on `.hbs` files.
+CI (`.github/workflows/discourse-plugin.yml`) delegates to Discourse's shared `discourse-plugin.yml`
+reusable workflow, which runs the Ruby and JS lints above plus `ember-template-lint` on `.hbs` files, *and*
+auto-detects and runs this repo's actual test types against a real Discourse core + Postgres + Redis — for
+now that's just the RSpec backend suite in `spec/`, since there are no QUnit/system tests yet. This means
+every push/PR actually runs `bin/rspec plugins/discourse-event-duplicator/spec` for real, not just lint —
+keep specs passing locally before pushing, since CI will now catch what lint alone can't (e.g. wrong
+Guardian/Category API usage that only fails at runtime).
 
 ## Architecture
 
