@@ -4,8 +4,8 @@
 # about: Duplicate calendar events/topics into a new time period, individually or as a tagged series
 # meta_topic_id: TODO
 # version: 0.0.1
-# authors: TODO
-# url: https://github.com/TODO/discourse-event-duplicator
+# authors: Lou King
+# url: https://github.com/louking/discourse-event-duplicator
 # required_version: 2.7.0
 
 enabled_site_setting :event_duplicator_enabled
