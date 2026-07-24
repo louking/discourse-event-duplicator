@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Runs the same checks CI runs, against a local Discourse core checkout,
+# in seconds instead of GitHub's multi-minute cold-start round trip.
+set -euo pipefail
+
+PLUGIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PLUGIN_NAME="$(basename "$PLUGIN_DIR")"
+DISCOURSE_ROOT="${DISCOURSE_ROOT:-$HOME/discourse}"
+
+if [ ! -x "$DISCOURSE_ROOT/bin/rails" ]; then
+  echo "error: no Discourse core checkout found at DISCOURSE_ROOT=$DISCOURSE_ROOT" >&2
+  echo "set DISCOURSE_ROOT to the Discourse core checkout that has this plugin in plugins/$PLUGIN_NAME" >&2
+  exit 1
+fi
+
+echo "==> eslint"
+(cd "$PLUGIN_DIR" && yarn eslint assets/javascripts)
+
+echo "==> rubocop"
+(cd "$DISCOURSE_ROOT" && bundle exec rubocop "plugins/$PLUGIN_NAME")
+
+echo "==> zeitwerk:check (would the app fail to eager_load, e.g. in production?)"
+(cd "$DISCOURSE_ROOT" && bin/rails zeitwerk:check --trace)
+
+echo "==> reload check (would the app fail to reload in development?)"
+(cd "$DISCOURSE_ROOT" && bin/rails runner "Rails.application.reloader.reload!")
+
+echo "==> rspec"
+(cd "$DISCOURSE_ROOT" && bin/rspec "plugins/$PLUGIN_NAME/spec")
+
+echo
+echo "All checks passed."

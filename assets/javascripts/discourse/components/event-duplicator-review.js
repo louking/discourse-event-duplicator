@@ -5,7 +5,8 @@ import { action } from "@ember/object";
 // Placeholder for the review/edit step: lists each proposed duplicate with
 // its editable date(s) and a checkbox to include/exclude it, then confirms.
 export default class EventDuplicatorReview extends Component {
-  @tracked selections = new Map(
+  @tracked
+  selections = new Map(
     (this.args.topics ?? []).map((topic) => [topic.id, true])
   );
 

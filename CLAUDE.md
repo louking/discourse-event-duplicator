@@ -43,6 +43,13 @@ every push/PR actually runs `bin/rspec plugins/discourse-event-duplicator/spec` 
 keep specs passing locally before pushing, since CI will now catch what lint alone can't (e.g. wrong
 Guardian/Category API usage that only fails at runtime).
 
+**Run `bin/local-ci` before pushing.** It runs the same checks as CI (eslint, rubocop, `zeitwerk:check`,
+a dev-mode reload check, and the RSpec suite) against a local Discourse core checkout, in ~20 seconds —
+versus several minutes for CI's from-scratch spin-up. It assumes a Discourse core checkout at
+`~/discourse` with this plugin symlinked into `plugins/discourse-event-duplicator`; override with the
+`DISCOURSE_ROOT` env var if yours lives elsewhere. This is what caught the `guardian.can_create_topic?`
+and `routes.append`-vs-`draw` bugs after the fact instead of before — run it first next time.
+
 ## Architecture
 
 **Backend (`lib/`, `app/`, `config/`)**

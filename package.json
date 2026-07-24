@@ -2,6 +2,7 @@
   "name": "discourse-event-duplicator",
   "private": true,
   "devDependencies": {
+    "eslint": "^8.57.0",
     "eslint-config-discourse": "^3.6.0",
     "prettier": "^3.3.3"
   },

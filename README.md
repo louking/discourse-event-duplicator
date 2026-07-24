@@ -31,11 +31,34 @@ plugin. See the [Discourse plugin installation guide](https://meta.discourse.org
 ## Development
 
 ```bash
-# from a discourse core checkout, with this repo cloned into plugins/discourse-event-duplicator
+# from a discourse core checkout, with this repo cloned/symlinked into plugins/discourse-event-duplicator
 bin/rspec plugins/discourse-event-duplicator/spec
-yarn eslint plugins/discourse-event-duplicator/assets/javascripts
 bundle exec rubocop plugins/discourse-event-duplicator
+
+# from this repo's own directory (JS tooling is self-contained via package.json)
+yarn eslint assets/javascripts
 ```
+
+### Running all checks before pushing
+
+CI runs eslint, rubocop, a `zeitwerk:check`, a Rails dev-mode reload check, and the RSpec suite against a
+real Discourse core checkout — but that spins up a fresh environment from scratch and takes several
+minutes. To run the same checks locally in seconds against a Discourse core checkout you already have set
+up:
+
+```bash
+bin/local-ci
+```
+
+By default it looks for a Discourse core checkout at `~/discourse` with this plugin symlinked into
+`plugins/discourse-event-duplicator`. If yours lives somewhere else:
+
+```bash
+DISCOURSE_ROOT=/path/to/discourse bin/local-ci
+```
+
+Run this before every push — it's what would have caught a couple of real bugs (a wrong Guardian method
+name, a route-mounting pattern that broke on reload) before they ever reached CI.
 
 ## License
 
