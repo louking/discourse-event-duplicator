@@ -16,6 +16,9 @@ fi
 echo "==> eslint"
 (cd "$PLUGIN_DIR" && yarn eslint assets/javascripts)
 
+echo "==> prettier"
+(cd "$PLUGIN_DIR" && npx prettier --check "assets/**/*.{js,gjs,hbs,scss}")
+
 echo "==> rubocop"
 (cd "$DISCOURSE_ROOT" && bundle exec rubocop "plugins/$PLUGIN_NAME")
 
