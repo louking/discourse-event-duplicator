@@ -6,4 +6,4 @@ DiscourseEventDuplicator::Engine.routes.draw do
   post "/duplicate" => "event_duplicator#duplicate"
 end
 
-Discourse::Application.routes.append { mount ::DiscourseEventDuplicator::Engine, at: "/event-duplicator" }
+Discourse::Application.routes.draw { mount ::DiscourseEventDuplicator::Engine, at: "/event-duplicator" }
