@@ -59,7 +59,7 @@ which runs both the Ruby and JS lints above plus `ember-template-lint` on `.hbs`
 
 **Authorization model — this is the one thing to get right in any change touching access control:** there is
 no plugin-specific group or role. A user may duplicate into a category if and only if
-`guardian.can_create_topic?(category)` is true for that category — i.e. Discourse's own category permissions
+`guardian.can_create_topic_on_category?(category)` is true for that category — i.e. Discourse's own category permissions
 are the *entire* authorization boundary. Every controller action must resolve the target category and call
 `ensure_can_duplicate_into!(category)` before doing anything else; see the existing private helpers
 (`find_category!`, `find_topic!`, `ensure_can_duplicate_into!`) in the controller and follow the same pattern

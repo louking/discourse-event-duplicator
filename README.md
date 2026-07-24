@@ -21,7 +21,7 @@ Early skeleton — routes, controller, and Ember UI are wired up end to end but 
   plugin reads and writes the topic/post custom fields it defines for event dates.
 - Events being duplicated live in a specific category. There is no plugin-specific group or role: a user may
   duplicate into that category if and only if they already have permission to create topics there
-  (`guardian.can_create_topic?(category)`). Category permissions are the only authorization boundary.
+  (`guardian.can_create_topic_on_category?(category)`). Category permissions are the only authorization boundary.
 
 ## Installation
 

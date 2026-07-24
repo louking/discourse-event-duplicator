@@ -3,9 +3,15 @@
 require "rails_helper"
 
 RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
-  fab!(:restricted_group) { Fabricate(:group) }
-  fab!(:member) { Fabricate(:user) }
-  fab!(:non_member) { Fabricate(:user) }
+  fab!(:restricted_group, :group)
+  # refresh_auto_groups: true is required for the fabricated user to actually
+  # land in the trust_level_N auto groups (Fabricate(:user) alone sets the
+  # trust_level column but skips the group sync) -- without it these users
+  # fail the site-wide `create_topic_allowed_groups` gate regardless of
+  # category permissions, which made this spec fail against a real guardian
+  # check rather than exercising the category-permission boundary it's for.
+  fab!(:member) { Fabricate(:user, refresh_auto_groups: true) }
+  fab!(:non_member) { Fabricate(:user, refresh_auto_groups: true) }
 
   fab!(:category) do
     Fabricate(:category).tap do |c|

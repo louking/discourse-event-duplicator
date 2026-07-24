@@ -50,7 +50,7 @@ module ::DiscourseEventDuplicator
     # group or role. Anyone who can create a topic in the target category
     # (per Discourse's own category permissions) may duplicate events into it.
     def ensure_can_duplicate_into!(category)
-      raise Discourse::InvalidAccess unless guardian.can_create_topic?(category)
+      raise Discourse::InvalidAccess unless guardian.can_create_topic_on_category?(category)
     end
 
     def find_category!
