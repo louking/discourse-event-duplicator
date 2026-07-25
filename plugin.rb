@@ -19,9 +19,40 @@ end
 require_relative "lib/discourse_event_duplicator/engine"
 
 after_initialize do
-  # discourse-calendar owns the topic/post custom fields (event start/end dates)
-  # that this plugin reads and writes when duplicating events, so it must be
-  # present and enabled.
+  register_topic_custom_field_type(
+    DiscourseEventDuplicator::DuplicationTracker::FIELD_NAME,
+    :json,
+  )
+  register_topic_custom_field_type(
+    DiscourseEventDuplicator::DuplicationTracker::SOURCE_FIELD_NAME,
+    :json,
+  )
+
+  # Deleting a duplicate topic (this plugin's own creation) makes its source
+  # topic eligible for re-duplication again, as if the duplicate had never
+  # been created; recovering it re-locks that eligibility. :topic_trashed is
+  # the common, reversible delete path; :topic_destroyed also covers a
+  # direct permanent delete (which skips trash entirely) -- both call the
+  # same idempotent DuplicationTracker#forget!, see its comments for why
+  # that's safe. See DuplicationTracker for the reverse-pointer mechanism
+  # this relies on.
+  on(:topic_trashed) do |topic|
+    DiscourseEventDuplicator::DuplicationTracker.forget!(duplicate_topic: topic)
+  end
+
+  on(:topic_destroyed) do |topic, _user|
+    DiscourseEventDuplicator::DuplicationTracker.forget!(duplicate_topic: topic)
+  end
+
+  on(:topic_recovered) do |topic|
+    DiscourseEventDuplicator::DuplicationTracker.restore!(duplicate_topic: topic)
+  end
+
+  # discourse-calendar owns event data via DiscoursePostEvent::Event
+  # (original_starts_at/original_ends_at, populated by parsing an [event]
+  # block out of a post's raw text), not via plugin-local custom fields --
+  # this plugin must read/write through that, so it depends on
+  # discourse-calendar being present.
   unless Discourse.plugins.any? { |plugin| plugin.name == "discourse-calendar" }
     Rails.logger.warn(
       "[#{DiscourseEventDuplicator::PLUGIN_NAME}] The discourse-calendar plugin is required but was not found. " \

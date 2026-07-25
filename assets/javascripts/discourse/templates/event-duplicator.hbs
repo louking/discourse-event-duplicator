@@ -1,6 +1,22 @@
-{{! Placeholder page for reviewing/editing proposed dates before duplicating. }}
+{{! Review/edit step: shown after picking a category+tags (series) or a
+    single topic (topic-admin menu item). }}
 <div class="event-duplicator-page">
-  <h2>{{i18n "event_duplicator.review.title" tag=this.model.tagName}}</h2>
+  <h2>{{i18n "event_duplicator.review.title" tags=this.tagsLabel}}</h2>
+
+  <div class="control-group event-duplicator-date-strategy">
+    <label>{{i18n "event_duplicator.review.date_strategy"}}</label>
+    <select
+      value={{this.model.dateStrategy}}
+      {{on "change" this.setDateStrategy}}
+    >
+      <option value="calendar_date">{{i18n
+          "event_duplicator.date_strategy.calendar_date"
+        }}</option>
+      <option value="nth_weekday_of_month">{{i18n
+          "event_duplicator.date_strategy.nth_weekday_of_month"
+        }}</option>
+    </select>
+  </div>
 
   <EventDuplicatorReview
     @topics={{this.model.topics}}

@@ -5,23 +5,31 @@ A [Discourse](https://www.discourse.org/) plugin that lets authorized users dupl
 
 ## Status
 
-Early skeleton — routes, controller, and Ember UI are wired up end to end but the actual duplication logic
-(deduping, date-shifting, topic/event creation) is not implemented yet.
+Implemented end to end — series and single-topic duplication both work, with a review step for editing
+proposed dates, choosing a date-shift rule, and flagging events as not-yet-settled. See
+[docs/USAGE.md](docs/USAGE.md) for a full walkthrough of what it does and how to use it; this README stays
+high-level.
 
-## What it does (planned)
+## What it does
 
-- **Series duplication**: pick a tag (e.g. `grand-prix`, `signature-race`), list every topic tagged with it
-  (or any of a set of tags, deduped so multi-tagged topics only show up once), propose next-occurrence dates
-  for each, let the user review/edit dates and uncheck any they don't want, then create the new topics/events.
-- **Single event duplication**: the same review-and-confirm flow for one topic at a time.
+- **Series duplication**: pick a category and one or more tags (e.g. `grand-prix`, `signature-race` — any
+  match, deduped so multi-tagged topics only show up once), optionally restrict to events in a date range,
+  then review proposed next-occurrence dates (with a choice of date-shift rule) before confirming.
+- **Single event duplication**: the same review-and-confirm flow for one topic at a time, from that topic's
+  admin menu.
+- A review step showing each event's original start date alongside the proposed new one (editable — the end
+  date is always derived automatically from the source event's own duration), plus a "date TBD" flag for
+  events whose real-world date isn't settled yet.
 
 ## Requirements
 
 - [discourse-calendar](https://github.com/discourse/discourse-calendar) must be installed and enabled — this
-  plugin reads and writes the topic/post custom fields it defines for event dates.
-- Events being duplicated live in a specific category. There is no plugin-specific group or role: a user may
-  duplicate into that category if and only if they already have permission to create topics there
-  (`guardian.can_create_topic_on_category?(category)`). Category permissions are the only authorization boundary.
+  plugin duplicates events by going through discourse-calendar's own `[event ...]` post markup and
+  `DiscoursePostEvent::Event` model, not by inventing separate date storage.
+- Category permissions are necessary but not sufficient for authorization: a user must both have permission
+  to create topics in the target category *and* belong to one of the groups in the
+  `event_duplicator_allowed_groups` site setting (default: staff only). See
+  [docs/USAGE.md](docs/USAGE.md#site-settings) for the full settings reference.
 
 ## Installation
 
@@ -37,6 +45,7 @@ bundle exec rubocop plugins/discourse-event-duplicator
 
 # from this repo's own directory (JS tooling is self-contained via package.json)
 yarn eslint assets/javascripts
+npx prettier --check "assets/**/*.{js,gjs,hbs,scss}"
 ```
 
 ### Running all checks before pushing

@@ -2,3 +2,19 @@ plugins:
   event_duplicator_enabled:
     default: false
     client: true
+  event_duplicator_allowed_groups:
+    default: "3" # staff
+    client: true
+    type: group_list
+    allow_any: false
+    refresh: true
+  event_duplicator_default_date_strategy:
+    default: calendar_date
+    client: true
+    type: enum
+    choices:
+      - calendar_date
+      - nth_weekday_of_month
+  event_duplicator_tbd_annotation:
+    default: " (date TBD)"
+    client: true

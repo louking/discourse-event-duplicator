@@ -1,0 +1,63 @@
+<div class="event-duplicator-new-page">
+  <h2>{{i18n "event_duplicator.new.title"}}</h2>
+
+  <div class="control-group">
+    <label>{{i18n "event_duplicator.new.category"}}</label>
+    <CategoryChooser
+      @value={{this.categoryId}}
+      @onChange={{this.setCategoryId}}
+    />
+  </div>
+
+  <div class="control-group">
+    <label>{{i18n "event_duplicator.new.tags"}}</label>
+    <TagChooser
+      @tags={{this.tags}}
+      @categoryId={{this.categoryId}}
+      @onChange={{this.setTags}}
+    />
+  </div>
+
+  <div class="control-group">
+    <label>{{i18n "event_duplicator.new.starts_after"}}</label>
+    <div class="event-duplicator-date-field">
+      <input
+        type="date"
+        value={{this.startsAfter}}
+        {{on "change" this.setStartsAfter}}
+      />
+      {{#if this.startsAfter}}
+        <DButton
+          @action={{this.clearStartsAfter}}
+          @label="event_duplicator.new.clear_date"
+          @class="btn-flat"
+        />
+      {{/if}}
+    </div>
+  </div>
+
+  <div class="control-group">
+    <label>{{i18n "event_duplicator.new.starts_before"}}</label>
+    <div class="event-duplicator-date-field">
+      <input
+        type="date"
+        value={{this.startsBefore}}
+        {{on "change" this.setStartsBefore}}
+      />
+      {{#if this.startsBefore}}
+        <DButton
+          @action={{this.clearStartsBefore}}
+          @label="event_duplicator.new.clear_date"
+          @class="btn-flat"
+        />
+      {{/if}}
+    </div>
+  </div>
+
+  <DButton
+    @class="btn-primary"
+    @action={{this.proceed}}
+    @disabled={{not this.canProceed}}
+    @label="event_duplicator.new.next"
+  />
+</div>

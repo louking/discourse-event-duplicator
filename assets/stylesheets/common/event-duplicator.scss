@@ -2,4 +2,25 @@
   .event-duplicator-review {
     width: 100%;
   }
+
+  .event-duplicator-already-duplicated {
+    color: var(--danger);
+    font-size: var(--font-down-1);
+  }
+
+  .event-duplicator-date-strategy select {
+    min-width: 20em;
+  }
+}
+
+.event-duplicator-new-page {
+  .control-group {
+    margin-bottom: 1em;
+  }
+
+  .event-duplicator-date-field {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+  }
 }

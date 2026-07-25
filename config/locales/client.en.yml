@@ -1,9 +1,29 @@
 en:
   js:
     event_duplicator:
+      sidebar:
+        link_title: "Duplicate calendar events into a new time period"
+        link_text: "Event Duplicator"
+      new:
+        title: "Select events to duplicate"
+        category: "Category"
+        tags: "Tags (any of)"
+        starts_after: "Only events starting after"
+        starts_before: "Only events starting before"
+        clear_date: "Clear"
+        next: "Next"
       review:
-        title: "Duplicate events: %{tag}"
+        title: "Review duplicates: %{tags}"
         topic: "Topic"
-        proposed_date: "Proposed date"
+        old_start: "Old start"
+        new_start: "New start"
+        tbd: "Date TBD"
+        date_strategy: "Date rule"
+        already_duplicated: "Already duplicated to topic #%{topic_id}"
         no_topics: "No matching topics found."
         confirm: "Duplicate selected"
+      date_strategy:
+        calendar_date: "Same calendar date"
+        nth_weekday_of_month: "Same weekday of month (e.g. 3rd Saturday)"
+      topic_admin_menu:
+        duplicate: "Duplicate event"

@@ -1,3 +1,6 @@
 en:
   site_settings:
     event_duplicator_enabled: "Enable the Event Duplicator plugin."
+    event_duplicator_allowed_groups: "Groups whose members may duplicate calendar events, in addition to the existing per-category permission check."
+    event_duplicator_default_date_strategy: "Default strategy for proposing a duplicated event's new date(s): calendar_date shifts to the same calendar date, nth_weekday_of_month preserves e.g. the 3rd Saturday of the month."
+    event_duplicator_tbd_annotation: "Text appended to a duplicated topic's title (and event name, if set) when it's marked as not-yet-settled in the review step. Leave blank to disable the annotation entirely."

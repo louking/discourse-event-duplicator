@@ -8,49 +8,139 @@ module ::DiscourseEventDuplicator
     #
     # Lists the topics that back a "series" duplication: every topic tagged
     # with the given tag (or any of `additional_tags`), deduped so a topic
-    # carrying more than one matching tag is only listed once.
+    # carrying more than one matching tag is only listed once, optionally
+    # restricted to events starting within `starts_after`/`starts_before`.
     def tagged_topics
       category = find_category!
       ensure_can_duplicate_into!(category)
 
-      # TODO: query TopicQuery for topics in `category` tagged with
-      # `params[:tag_name]` (and any `params[:additional_tags]`), dedupe by
-      # topic id, and serialize alongside their discourse-calendar event dates.
-      render json: { topics: [] }
+      tags = [params[:tag_name], *Array(params[:additional_tags])].compact
+      topics =
+        TopicDeduplicator.new(
+          tags: tags,
+          guardian: guardian,
+          category: category,
+          starts_after: parse_time(params[:starts_after]),
+          starts_before: parse_time(params[:starts_before]),
+        ).call
+
+      strategy = resolve_strategy(params[:date_strategy])
+      proposed = topics.each_with_object({}) { |topic, h| h[topic.id] = proposed_dates_for(topic, strategy) }
+      existing_duplicates =
+        topics.each_with_object({}) do |topic, h|
+          h[topic.id] = DuplicationTracker.existing_duplicate_for(
+            source_topic: topic,
+            target_starts_at: proposed[topic.id][:starts_at],
+          )
+        end
+
+      render_serialized(
+        topics,
+        DuplicatableTopicSerializer,
+        root: "topics",
+        proposed_dates: proposed,
+        existing_duplicates: existing_duplicates,
+      )
     end
 
     # GET /event-duplicator/topics/:topic_id/proposed_dates
     #
-    # Computes the proposed next-occurrence date(s) for one or more topics,
-    # for the reviewer to edit/confirm before duplication.
+    # Computes the proposed next-occurrence date(s) for one topic, for the
+    # reviewer to edit/confirm before duplication.
     def proposed_dates
       topic = find_topic!
       ensure_can_duplicate_into!(topic.category)
 
-      # TODO: read the discourse-calendar custom fields for `topic`'s event,
-      # shift them forward (default: +1 year), and return the proposal.
-      render json: { topic_id: topic.id, proposed_start: nil, proposed_end: nil }
+      event = topic.first_post&.event
+      raise Discourse::NotFound if event.blank?
+
+      strategy = resolve_strategy(params[:date_strategy])
+      proposed = DateShifter.new(starts_at: event.starts_at, ends_at: event.ends_at, strategy: strategy).call
+
+      render json: {
+               topic_id: topic.id,
+               original_start: event.starts_at,
+               original_end: event.ends_at,
+               proposed_start: proposed[:starts_at],
+               proposed_end: proposed[:ends_at],
+             }
     end
 
     # POST /event-duplicator/duplicate
     #
-    # Performs the duplication for the reviewed/edited set of topics.
+    # Performs the duplication for the reviewed/edited set of topics. Each
+    # item is authorized and checked against DuplicationTracker
+    # independently -- items may span categories, so the top-level request
+    # can't be authorized once for all of them.
     def duplicate
-      category = find_category!
-      ensure_can_duplicate_into!(category)
+      duplicated = []
+      skipped = []
 
-      # TODO: for each reviewed item in params[:items], create the duplicate
-      # topic/post and its discourse-calendar event with the confirmed dates.
-      render json: { duplicated: [] }
+      Array(params[:items]).each do |item|
+        topic = Topic.find_by(id: item[:topic_id])
+        raise Discourse::NotFound if topic.blank?
+
+        ensure_can_duplicate_into!(topic.category)
+
+        starts_at = parse_time(item[:starts_at])
+        force = ActiveModel::Type::Boolean.new.cast(item[:force])
+        tbd = ActiveModel::Type::Boolean.new.cast(item[:tbd])
+
+        existing = DuplicationTracker.existing_duplicate_for(source_topic: topic, target_starts_at: starts_at)
+        if existing && !force
+          skipped << {
+            topic_id: topic.id,
+            reason: "already_duplicated",
+            existing_duplicate_topic_id: existing["topic_id"],
+          }
+          next
+        end
+
+        begin
+          new_topic =
+            TopicDuplicator.new(
+              source_topic: topic,
+              actor: current_user,
+              starts_at: starts_at,
+              tbd: tbd,
+            ).call
+          DuplicationTracker.record!(source_topic: topic, new_topic: new_topic, starts_at: starts_at)
+          duplicated << { topic_id: topic.id, new_topic_id: new_topic.id, new_topic_url: new_topic.relative_url }
+        rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved => e
+          skipped << { topic_id: topic.id, reason: e.message }
+        end
+      end
+
+      render json: { duplicated: duplicated, skipped: skipped }
     end
 
     private
 
-    # Authorization is entirely category-based: there is no plugin-specific
-    # group or role. Anyone who can create a topic in the target category
-    # (per Discourse's own category permissions) may duplicate events into it.
+    # Authorization is category-based *and* gated by an explicit allowlist of
+    # groups: a user may duplicate into a category only if Discourse's own
+    # category permissions allow them to create a topic there AND they
+    # belong to one of the groups in `event_duplicator_allowed_groups`
+    # (default: staff).
     def ensure_can_duplicate_into!(category)
-      raise Discourse::InvalidAccess unless guardian.can_create_topic_on_category?(category)
+      raise Discourse::InvalidAccess unless can_duplicate_into?(category)
+    end
+
+    def can_duplicate_into?(category)
+      guardian.can_create_topic_on_category?(category) &&
+        guardian.user.in_any_groups?(SiteSetting.event_duplicator_allowed_groups_map)
+    end
+
+    def resolve_strategy(param)
+      (param.presence || SiteSetting.event_duplicator_default_date_strategy).to_sym
+    end
+
+    def proposed_dates_for(topic, strategy)
+      event = topic.first_post&.event
+      DateShifter.new(starts_at: event&.starts_at, ends_at: event&.ends_at, strategy: strategy).call
+    end
+
+    def parse_time(value)
+      value.present? ? Time.zone.parse(value) : nil
     end
 
     def find_category!
