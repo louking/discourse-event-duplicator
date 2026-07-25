@@ -79,13 +79,18 @@ and `routes.append`-vs-`draw` bugs after the fact instead of before — run it f
   intentionally reuses the source topic's title, which would otherwise trip Discourse's default
   "no duplicate titles" check — this skips that and other generic topic/post content validations (redundant
   for a copy of already-valid, code-generated content) but does *not* skip discourse-calendar's own event
-  validation, which is registered as an independent `Post` validation. Only takes `starts_at:` — there's no
-  `ends_at:` parameter; the end date is always derived from the source event's own duration
+  validation, which is registered as an independent `Post` validation. There's no `ends_at:` parameter; the
+  end date is always derived from the source event's own duration
   (`starts_at + (source_event.ends_at - source_event.starts_at)`) via `#effective_ends_at`, so an edited start
   date can't drift out of sync with an independently-edited (and now nonexistent) end date. Accepts `tbd:` —
   race events often don't have a settled date yet, so `tbd: true` appends (and `tbd: false` strips a stale)
   the `event_duplicator_tbd_annotation` site setting's text (default `" (date TBD)"`) on both the new topic's
-  title and the event's `name`.
+  title and the event's `name`. Accepts an optional `title:` override (`#effective_title`) — reviewers can
+  rename the duplicate rather than always reusing the source topic's title verbatim (e.g. to drop a baked-in
+  year); when given, it's used for *both* the new topic's title and, since the two are normally kept in sync,
+  the event's own `name` too (still passed through `#annotate`, so `tbd:` layers on top of an override rather
+  than being mutually exclusive with it). Falls back to the source topic's title when omitted/blank, which is
+  the only behavior before this override existed.
 - `lib/discourse_event_duplicator/duplication_tracker.rb` — records, on the *source* topic's
   `event_duplicator_duplications` custom field, which target years it's already been duplicated to. Exists
   because a topic can carry more than one series tag, so two separate tag-scoped runs could otherwise
@@ -116,7 +121,7 @@ and `routes.append`-vs-`draw` bugs after the fact instead of before — run it f
   - `GET /event-duplicator/topics/:topic_id/proposed_dates` — compute the proposed next-occurrence date(s)
     for a single topic.
   - `POST /event-duplicator/duplicate` — perform the duplication for `params[:items]` (each with
-    `topic_id`, `starts_at`, optional `tbd`/`force` — no `ends_at`, see `TopicDuplicator` above); each item
+    `topic_id`, `starts_at`, optional `tbd`/`force`/`title` — no `ends_at`, see `TopicDuplicator` above); each item
     is authorized and checked against `DuplicationTracker` independently (items may span categories), and
     per-item failures (already duplicated, or a remaining Discourse validation failure) are reported back in
     a `skipped` list rather than aborting the whole batch. `force: true` bypasses the `DuplicationTracker`
@@ -229,19 +234,21 @@ request, since items can span categories.
   and passes the resolved value through as `model.dateStrategy`, both to actually use it and so the review
   page's date-rule `<select>` has a real value to show/default to.
 - `controllers/event-duplicator.js` — holds `isDuplicating` state, `confirmDuplication` (maps selected review
-  items to `{ topic_id, starts_at, tbd }` before calling the service — no `ends_at`; see `TopicDuplicator` on
-  the backend), and `setDateStrategy` (a `<select>` change handler that `transitionTo`s with a new
-  `date_strategy` query param — the route's `queryParams` config has `refreshModel: true` for it, so this
-  alone re-runs `model()` with the new strategy and recomputes every row's proposed dates).
-- `components/event-duplicator-review.gjs` — the review/edit step: only the start date is shown/edited (**Old
-  start**, read-only, from `topic.original_start`; **New start**, editable) — there's no end-date column,
-  since the backend always derives the duplicate's end date from the source event's own duration (see
+  items to `{ topic_id, starts_at, tbd, title }` before calling the service — no `ends_at`; see
+  `TopicDuplicator` on the backend), and `setDateStrategy` (a `<select>` change handler that `transitionTo`s
+  with a new `date_strategy` query param — the route's `queryParams` config has `refreshModel: true` for it,
+  so this alone re-runs `model()` with the new strategy and recomputes every row's proposed dates).
+- `components/event-duplicator-review.gjs` — the review/edit step: an editable **Topic** title (pre-filled
+  from `topic.title`, plain `<input type="text">`) alongside the start date (**Old start**, read-only, from
+  `topic.original_start`; **New start**, editable) — there's no end-date column, since the backend always
+  derives the duplicate's end date from the source event's own duration (see
   `TopicDuplicator#effective_ends_at`). The New start input is an `<input type="date">` (day granularity
   only, per product decision — race event times don't change, just sometimes the date); editing it
   reconstructs the full ISO string by splicing the new date onto the *existing* time-of-day
   (`dateOnly`/`withNewDate` helpers) rather than losing the time or requiring a separate time input. **Per-topic
   state is split into `@topics` (the proposal) and a separate `edits` Map (topic id → only the fields the user
-  has actually touched)** — deliberately *not* a single `@tracked` field seeded from `@topics` at construction
+  has actually touched, currently `isSelected`/`tbd`/`startsAt`/`title`)** — deliberately *not* a single
+  `@tracked` field seeded from `@topics` at construction
   time. That was tried first and was the actual cause of "changing the date rule has no effect": a Glimmer
   class field initializer runs once, when the component is constructed, and does not rerun when `@args`
   change later — so a `@tracked itemStates = new Map(this.args.topics.map(...))` field keeps showing the

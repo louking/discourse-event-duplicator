@@ -99,6 +99,42 @@ RSpec.describe DiscourseEventDuplicator::TopicDuplicator do
     end
   end
 
+  describe "title:" do
+    it "overrides the source topic's title and the event's name" do
+      new_topic =
+        described_class.new(
+          source_topic: source_topic,
+          actor: actor,
+          starts_at: starts_at,
+          title: "Monaco Grand Prix 2027",
+        ).call
+
+      expect(new_topic.title).to eq("Monaco Grand Prix 2027")
+      expect(new_topic.first_post.reload.event.name).to eq("Monaco Grand Prix 2027")
+    end
+
+    it "still applies the tbd annotation on top of the override" do
+      new_topic =
+        described_class.new(
+          source_topic: source_topic,
+          actor: actor,
+          starts_at: starts_at,
+          title: "Monaco Grand Prix 2027",
+          tbd: true,
+        ).call
+
+      expect(new_topic.title).to eq("Monaco Grand Prix 2027 (date TBD)")
+      expect(new_topic.first_post.reload.event.name).to eq("Monaco Grand Prix 2027 (date TBD)")
+    end
+
+    it "falls back to the source topic's title when blank" do
+      new_topic =
+        described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at, title: "").call
+
+      expect(new_topic.title).to eq("Monaco Grand Prix")
+    end
+  end
+
   describe "tbd: true" do
     it "appends the annotation to the duplicate's title and event name" do
       new_topic =

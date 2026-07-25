@@ -24,6 +24,18 @@ function withNewDate(newDate, previousIso) {
   return `${newDate}${time}`;
 }
 
+// A plain <input> without an explicit `size` renders at a fixed ~20-character
+// default width regardless of its value, which clips a typical event title.
+// Deriving `size` from the title's own length (each row independently, since
+// this is per-item, not a single shared column width) lets the table's
+// default auto layout size the whole Topic column to fit the longest title
+// actually present, rather than every row having to fit inside a fixed guess.
+const MIN_TITLE_INPUT_SIZE = 20;
+
+function titleInputSize(title) {
+  return Math.max(MIN_TITLE_INPUT_SIZE, (title ?? "").length + 2);
+}
+
 // The review/edit step: lists each proposed duplicate's original ("old")
 // start date alongside the proposed ("new") start date, editable at day
 // granularity, a "date TBD" flag (race events often don't have a settled
@@ -83,7 +95,13 @@ export default class EventDuplicatorReview extends Component {
               />
             </td>
             <td>
-              {{item.topic.title}}
+              <input
+                type="text"
+                class="event-duplicator-title"
+                value={{item.title}}
+                size={{item.titleSize}}
+                {{on "change" (fn this.setTitle item.topic.id)}}
+              />
               {{#if item.topic.already_duplicated}}
                 <span class="event-duplicator-already-duplicated">
                   {{i18n
@@ -142,12 +160,15 @@ export default class EventDuplicatorReview extends Component {
       // default to flagging them as not-yet-settled.
       const tbd = edit.tbd ?? true;
       const startsAt = edit.startsAt ?? topic.proposed_start;
+      const title = edit.title ?? topic.title;
 
       return {
         topic,
         isSelected,
         tbd,
         startsAt,
+        title,
+        titleSize: titleInputSize(title),
         originalStartDate: dateOnly(topic.original_start),
         startsAtDate: dateOnly(startsAt),
       };
@@ -212,6 +233,11 @@ export default class EventDuplicatorReview extends Component {
   }
 
   @action
+  setTitle(topicId, event) {
+    this.setEdit(topicId, { title: event.target.value });
+  }
+
+  @action
   confirm() {
     const selectedItems = this.items
       .filter((item) => item.isSelected)
@@ -219,6 +245,7 @@ export default class EventDuplicatorReview extends Component {
         topic: item.topic,
         startsAt: item.startsAt,
         tbd: item.tbd,
+        title: item.title,
       }));
 
     this.args.onConfirm?.(selectedItems);

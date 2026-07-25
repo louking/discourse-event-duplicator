@@ -13,7 +13,7 @@ en:
         clear_date: "Clear"
         next: "Next"
       review:
-        title: "Review duplicates: %{tags}"
+        title: "Duplicate events: %{tags}"
         topic: "Topic"
         old_start: "Old start"
         new_start: "New start"

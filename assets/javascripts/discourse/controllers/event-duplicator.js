@@ -44,6 +44,7 @@ export default class EventDuplicatorController extends Controller {
       topic_id: item.topic.id,
       starts_at: item.startsAt,
       tbd: item.tbd,
+      title: item.title,
       force: item.topic.already_duplicated,
     }));
 

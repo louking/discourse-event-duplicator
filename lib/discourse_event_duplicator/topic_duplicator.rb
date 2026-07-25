@@ -9,18 +9,19 @@ module ::DiscourseEventDuplicator
   # row for us, so its validations, invitee handling, and topic-custom-field
   # sync all apply exactly as they would for a hand-authored event post.
   class TopicDuplicator
-    def initialize(source_topic:, actor:, starts_at:, tbd: false)
+    def initialize(source_topic:, actor:, starts_at:, tbd: false, title: nil)
       @source_topic = source_topic
       @actor = actor
       @starts_at = starts_at
       @tbd = tbd
+      @title = title.presence
     end
 
     def call
       post =
         PostCreator.create!(
           @actor,
-          title: annotate(@source_topic.title),
+          title: annotate(effective_title),
           raw: event_raw,
           category: @source_topic.category_id,
           tags: @source_topic.tags.map(&:name),
@@ -42,6 +43,12 @@ module ::DiscourseEventDuplicator
 
     def source_event
       @source_event ||= @source_topic.first_post&.event
+    end
+
+    # Reviewers can override the source topic's title (e.g. to drop a year
+    # baked into the name) rather than always reusing it verbatim.
+    def effective_title
+      @title || @source_topic.title
     end
 
     # The reviewer only edits the start date -- the end date is derived by
@@ -75,7 +82,10 @@ module ::DiscourseEventDuplicator
       attrs = {
         "start" => format_time(@starts_at, timezone, all_day),
         "end" => ends_at && format_time(ends_at, timezone, all_day),
-        "name" => event&.name && annotate(event.name),
+        # A title override should carry through to the event's own name too,
+        # so the calendar widget doesn't keep showing the old name once the
+        # topic title has been changed.
+        "name" => event&.name && annotate(@title || event.name),
         "timezone" => event&.timezone,
         "status" => event && DiscoursePostEvent::Event.statuses[event.status].to_s,
         "recurrence" => event&.recurrence,

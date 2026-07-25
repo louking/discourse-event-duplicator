@@ -52,6 +52,9 @@ the picker step and takes you straight to the review page for that one topic.
 
 Each row is one event topic that will be duplicated if you leave it checked.
 
+- **Topic** — the duplicate's title, pre-filled with the source topic's title. Editable — useful if your
+  source titles bake in a date or year (e.g. "Monaco Grand Prix 2026") that you'd want to change rather than
+  carry forward unchanged.
 - **Old start** — the source event's actual start date, for reference. Read-only.
 - **New start** — the proposed start date for the duplicate. Editable — if the proposed date is wrong, just
   change it. Only the calendar date is editable here; the time of day is carried over from the original

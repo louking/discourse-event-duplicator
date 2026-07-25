@@ -207,6 +207,19 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
         expect(new_topic.first_post.reload.event.name).to eq("Monaco Grand Prix (date TBD)")
       end
 
+      it "applies a title override when given" do
+        post "/event-duplicator/duplicate.json",
+             params: {
+               items: [
+                 { topic_id: topic.id, starts_at: "2027-05-24T13:00:00Z", title: "Monaco Grand Prix 2027" },
+               ],
+             }
+
+        new_topic = Topic.find(response.parsed_body["duplicated"].first["new_topic_id"])
+        expect(new_topic.title).to eq("Monaco Grand Prix 2027")
+        expect(new_topic.first_post.reload.event.name).to eq("Monaco Grand Prix 2027")
+      end
+
       it "skips an item already duplicated to the same target year unless forced" do
         duplicate_topic = Fabricate(:topic)
         DiscourseEventDuplicator::DuplicationTracker.record!(

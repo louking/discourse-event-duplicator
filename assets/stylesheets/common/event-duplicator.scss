@@ -1,11 +1,34 @@
 .event-duplicator-page {
   .event-duplicator-review {
     width: 100%;
+
+    // Discourse's base table styles give `<th>` 8px of padding but leave
+    // `<td>` at 0 -- confirmed via computed styles in a live browser, not
+    // assumed -- so a header checkbox sits 8px further right/down than the
+    // same checkbox one row below, even with matching text-align. Matching
+    // the padding is what actually lines every column (not just the
+    // checkbox ones) up between the header and body rows.
+    th,
+    td {
+      padding: 8px;
+      text-align: left;
+    }
   }
 
   .event-duplicator-already-duplicated {
     color: var(--danger);
     font-size: var(--font-down-1);
+  }
+
+  // Discourse's base stylesheet applies a flat `input { width: 210px; }` to
+  // every plain <input>, which silently overrides the HTML `size` attribute
+  // (confirmed live -- changing `size` had zero visible effect until this was
+  // found). Reverting to `width: auto` here lets the browser size the input
+  // from `size` again, so it actually fits each row's title -- both a real
+  // <input> and this class selector beat the base rule's specificity.
+  .event-duplicator-title {
+    width: auto;
+    max-width: 100%;
   }
 
   .event-duplicator-date-strategy select {

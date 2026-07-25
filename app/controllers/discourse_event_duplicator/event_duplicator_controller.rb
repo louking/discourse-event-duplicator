@@ -85,6 +85,7 @@ module ::DiscourseEventDuplicator
         starts_at = parse_time(item[:starts_at])
         force = ActiveModel::Type::Boolean.new.cast(item[:force])
         tbd = ActiveModel::Type::Boolean.new.cast(item[:tbd])
+        title = item[:title].presence
 
         existing = DuplicationTracker.existing_duplicate_for(source_topic: topic, target_starts_at: starts_at)
         if existing && !force
@@ -103,6 +104,7 @@ module ::DiscourseEventDuplicator
               actor: current_user,
               starts_at: starts_at,
               tbd: tbd,
+              title: title,
             ).call
           DuplicationTracker.record!(source_topic: topic, new_topic: new_topic, starts_at: starts_at)
           duplicated << { topic_id: topic.id, new_topic_id: new_topic.id, new_topic_url: new_topic.relative_url }
