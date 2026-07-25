@@ -71,13 +71,17 @@ Each row is one event topic that will be duplicated if you leave it checked.
   recalculates every row's proposed date immediately, unless you've already edited that row's date by hand
   (a manual edit is preserved rather than overwritten by a rule change).
 
-If a topic was already duplicated to the same target year in an earlier run (this matters if a topic carries
-more than one series tag and you've run the duplicator once per tag), it shows an "Already duplicated to
-topic #…" note and starts unchecked, so re-running doesn't accidentally create a second copy. Check the box
-yourself if you genuinely want a second copy anyway — checking it back on is treated as deliberate override
-and a new duplicate gets created even though one already exists.
+If a topic was already duplicated to the same target year in an earlier run — whether from re-running a
+series (this matters if a topic carries more than one series tag and you've run the duplicator once per
+tag) or from opening the single-topic "Duplicate event" flow again later — it shows an "Already duplicated
+to topic #…" note and starts unchecked, so re-running doesn't accidentally create a second copy. Check the
+box yourself if you genuinely want a second copy anyway — checking it back on is treated as deliberate
+override and a new duplicate gets created even though one already exists.
 
-Click **Duplicate selected** to create the checked topics.
+Click **Duplicate selected** to create the checked topics. A panel appears below the button once it's done:
+a link to each newly created duplicate, and, for anything that couldn't be duplicated, the reason why. This
+panel is just page state — it clears if you reload the page, but the topics it linked to aren't affected by
+that.
 
 ### Date rule
 
@@ -110,8 +114,9 @@ These are configured under **Admin → Settings**, searching for `event duplicat
 - Duplicating deliberately reuses the source topic's title — that's the point, it's the same event next
   time around. This intentionally bypasses Discourse's usual "no duplicate topic titles" check for this one
   action, since it's expected/normal here, not a mistake.
-- If a duplicate can't be created for some other reason (a genuine validation problem), the request tells
-  you which item was skipped and why rather than silently failing or duplicating everything else.
+- If a duplicate can't be created for some other reason (a genuine validation problem), it shows up in the
+  same post-duplication panel as skipped, with the reason why, rather than silently failing or duplicating
+  everything else.
 - Deleting a duplicate topic frees up its source topic for that occurrence again — the "Already duplicated"
   flag disappears next time you run the duplicator, exactly as if that duplicate had never been created. If
   you undo the deletion (recover the topic from trash), the flag comes right back too, so you can't end up
