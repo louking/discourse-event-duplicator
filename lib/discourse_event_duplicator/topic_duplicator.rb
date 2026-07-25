@@ -18,13 +18,14 @@ module ::DiscourseEventDuplicator
     end
 
     def call
+      attrs = preview
       post =
         PostCreator.create!(
           @actor,
-          title: annotate(effective_title),
-          raw: event_raw,
-          category: @source_topic.category_id,
-          tags: @source_topic.tags.map(&:name),
+          title: attrs[:title],
+          raw: attrs[:raw],
+          category: attrs[:category_id],
+          tags: attrs[:tags],
           archetype: Archetype.default,
           # A duplicate is expected to reuse the source topic's title, which
           # would otherwise trip Discourse's default "no duplicate titles"
@@ -37,6 +38,22 @@ module ::DiscourseEventDuplicator
           skip_validations: true,
         )
       post.topic
+    end
+
+    # The title/raw/category/tags a call to `#call` would create, without
+    # actually creating anything -- used to pre-fill the real Discourse
+    # composer for a reviewer to finish and post themselves, rather than
+    # creating the duplicate directly. Going through the composer's normal
+    # save path means normal Discourse validations (including the
+    # duplicate-title check `#call` deliberately skips) apply, since that's
+    # a real user-authored post at that point, not a code-generated copy.
+    def preview
+      @preview ||= {
+        title: annotate(effective_title),
+        raw: event_raw,
+        category_id: @source_topic.category_id,
+        tags: @source_topic.tags.map(&:name),
+      }
     end
 
     private

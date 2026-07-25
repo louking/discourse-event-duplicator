@@ -3,7 +3,6 @@ import { service } from "@ember/service";
 
 export default class EventDuplicatorRoute extends Route {
   @service eventDuplicator;
-  @service store;
   @service siteSettings;
 
   queryParams = {
@@ -28,7 +27,6 @@ export default class EventDuplicatorRoute extends Route {
   }
 
   async modelForSingleTopic(params, dateStrategy) {
-    const topic = await this.store.find("topic", params.topic_id);
     const proposed = await this.eventDuplicator.proposedDates(
       params.topic_id,
       dateStrategy
@@ -39,8 +37,8 @@ export default class EventDuplicatorRoute extends Route {
       dateStrategy,
       topics: [
         {
-          id: topic.id,
-          title: topic.title,
+          id: proposed.topic_id,
+          title: proposed.title,
           original_start: proposed.original_start,
           original_end: proposed.original_end,
           proposed_start: proposed.proposed_start,
