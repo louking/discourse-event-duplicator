@@ -22,7 +22,6 @@ en:
         already_duplicated: "Already duplicated to topic #%{topic_id}"
         no_topics: "No matching topics found."
         confirm: "Duplicate selected"
-        open_in_composer: "Open in composer"
       date_strategy:
         calendar_date: "Same calendar date"
         nth_weekday_of_month: "Same weekday of month (e.g. 3rd Saturday)"

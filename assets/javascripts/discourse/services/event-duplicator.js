@@ -32,28 +32,6 @@ export default class EventDuplicatorService extends Service {
     });
   }
 
-  // GET the title/raw body/category/tags a duplicate of this topic would
-  // have at the reviewer's edited start date/title/TBD flag, without
-  // creating anything -- used to pre-fill the real composer for
-  // single-topic duplication (see composer.openNewTopic in the
-  // event-duplicator controller).
-  composerPrefill(topicId, { startsAt, tbd, title } = {}) {
-    return ajax(`/event-duplicator/topics/${topicId}/composer_prefill`, {
-      data: { starts_at: startsAt, tbd, title },
-    });
-  }
-
-  // POST to tell DuplicationTracker about a duplicate the reviewer just
-  // created themselves via the pre-filled composer (see composerPrefill
-  // above) -- unlike #duplicate below, that path doesn't go through
-  // TopicDuplicator, so nothing else records it.
-  recordDuplicate(topicId, newTopicId) {
-    return ajax(`/event-duplicator/topics/${topicId}/record_duplicate`, {
-      type: "POST",
-      data: { new_topic_id: newTopicId },
-    });
-  }
-
   // POST the reviewed/edited set of items to actually duplicate. Each item
   // is `{ topic_id, starts_at, tbd, force }` -- no `ends_at`; the backend
   // derives the end date from the source event's own duration.

@@ -154,33 +154,6 @@ RSpec.describe DiscourseEventDuplicator::TopicDuplicator do
     end
   end
 
-  describe "#preview" do
-    it "returns the title/raw/category/tags #call would create, without creating anything" do
-      duplicator = described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at)
-
-      preview = nil
-      expect { preview = duplicator.preview }.not_to change(Topic, :count)
-
-      expect(preview[:title]).to eq("Monaco Grand Prix")
-      expect(preview[:raw]).to include('start="2027-05-23 13:00"')
-      expect(preview[:category_id]).to eq(category.id)
-      expect(preview[:tags]).to contain_exactly("grand-prix")
-    end
-
-    it "applies the title override and tbd annotation, same as #call" do
-      duplicator =
-        described_class.new(
-          source_topic: source_topic,
-          actor: actor,
-          starts_at: starts_at,
-          title: "Monaco Grand Prix 2027",
-          tbd: true,
-        )
-
-      expect(duplicator.preview[:title]).to eq("Monaco Grand Prix 2027 (date TBD)")
-    end
-  end
-
   describe "tbd: false (default)" do
     it "strips a stale annotation carried over from the source topic" do
       source_topic.update!(title: "Monaco Grand Prix (date TBD)")

@@ -67,61 +67,6 @@ module ::DiscourseEventDuplicator
              }
     end
 
-    # GET /event-duplicator/topics/:topic_id/composer_prefill
-    #
-    # Builds the title/raw body/category/tags a duplicate of this topic
-    # would have at the reviewer's edited start date/title/TBD flag,
-    # without creating anything -- the frontend uses this to pre-fill the
-    # real Discourse composer so the reviewer finishes and posts it
-    # themselves (single-topic duplication only; see TopicDuplicator#preview
-    # for why that means normal topic-creation validation applies here,
-    # unlike the direct-create path below).
-    def composer_prefill
-      topic = find_topic!
-      ensure_can_duplicate_into!(topic.category)
-
-      starts_at = parse_time(params[:starts_at])
-      raise Discourse::InvalidParameters if starts_at.blank?
-
-      preview =
-        TopicDuplicator.new(
-          source_topic: topic,
-          actor: current_user,
-          starts_at: starts_at,
-          tbd: ActiveModel::Type::Boolean.new.cast(params[:tbd]),
-          title: params[:title].presence,
-        ).preview
-
-      render json: preview
-    end
-
-    # POST /event-duplicator/topics/:topic_id/record_duplicate
-    #
-    # Called by the frontend once the reviewer finishes the pre-filled
-    # composer opened via #composer_prefill and Discourse creates the real
-    # topic through its normal composer/PostCreator path -- unlike
-    # #duplicate below, nothing else tells DuplicationTracker about a
-    # composer-created duplicate, so the frontend reports it back here.
-    # `starts_at` is derived from the *new* topic's own event rather than
-    # trusted from the request, and the new topic must actually have been
-    # authored by the current user, so a forged `new_topic_id` can't record
-    # a bogus tracker entry against a topic this user doesn't own.
-    def record_duplicate
-      topic = find_topic!
-      ensure_can_duplicate_into!(topic.category)
-
-      new_topic = Topic.find_by(id: params[:new_topic_id])
-      raise Discourse::NotFound if new_topic.blank?
-      raise Discourse::InvalidAccess unless new_topic.user_id == current_user.id
-
-      starts_at = new_topic.first_post&.event&.starts_at
-      raise Discourse::NotFound if starts_at.blank?
-
-      DuplicationTracker.record!(source_topic: topic, new_topic: new_topic, starts_at: starts_at)
-
-      render json: success_json
-    end
-
     # POST /event-duplicator/duplicate
     #
     # Performs the duplication for the reviewed/edited set of topics. Each

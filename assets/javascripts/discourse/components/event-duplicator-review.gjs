@@ -139,7 +139,7 @@ export default class EventDuplicatorReview extends Component {
       @class="btn-primary"
       @action={{this.confirm}}
       @disabled={{@isDuplicating}}
-      @label={{this.confirmLabel}}
+      @label="event_duplicator.review.confirm"
     />
   </template>
 
@@ -173,15 +173,6 @@ export default class EventDuplicatorReview extends Component {
         startsAtDate: dateOnly(startsAt),
       };
     });
-  }
-
-  // Series duplication creates every selected topic directly on confirm;
-  // single-topic duplication instead opens the real Discourse composer
-  // pre-filled, so the caller (controllers/event-duplicator.js) passes a
-  // different label for that case rather than this component guessing
-  // which mode it's in.
-  get confirmLabel() {
-    return this.args.confirmLabel ?? "event_duplicator.review.confirm";
   }
 
   get allSelected() {
