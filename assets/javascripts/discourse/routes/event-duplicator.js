@@ -43,8 +43,9 @@ export default class EventDuplicatorRoute extends Route {
           original_end: proposed.original_end,
           proposed_start: proposed.proposed_start,
           proposed_end: proposed.proposed_end,
-          already_duplicated: false,
-          selected: true,
+          already_duplicated: proposed.already_duplicated,
+          existing_duplicate_topic_id: proposed.existing_duplicate_topic_id,
+          selected: !proposed.already_duplicated,
         },
       ],
     };

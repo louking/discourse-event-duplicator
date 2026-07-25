@@ -56,6 +56,8 @@ module ::DiscourseEventDuplicator
 
       strategy = resolve_strategy(params[:date_strategy])
       proposed = DateShifter.new(starts_at: event.starts_at, ends_at: event.ends_at, strategy: strategy).call
+      existing =
+        DuplicationTracker.existing_duplicate_for(source_topic: topic, target_starts_at: proposed[:starts_at])
 
       render json: {
                topic_id: topic.id,
@@ -64,6 +66,8 @@ module ::DiscourseEventDuplicator
                original_end: event.ends_at,
                proposed_start: proposed[:starts_at],
                proposed_end: proposed[:ends_at],
+               already_duplicated: existing.present?,
+               existing_duplicate_topic_id: existing && existing["topic_id"],
              }
     end
 

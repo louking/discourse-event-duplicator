@@ -23,4 +23,40 @@
     @isDuplicating={{this.isDuplicating}}
     @onConfirm={{this.confirmDuplication}}
   />
+
+  {{#if this.result}}
+    <div class="event-duplicator-result">
+      {{#if this.result.duplicated.length}}
+        <div class="alert alert-success">
+          <p>{{i18n "event_duplicator.review.result.duplicated_heading"}}</p>
+          <ul>
+            {{#each this.result.duplicated as |entry|}}
+              <li><a href={{entry.new_topic_url}}>{{entry.title}}</a></li>
+            {{/each}}
+          </ul>
+        </div>
+      {{/if}}
+
+      {{#if this.result.skipped.length}}
+        <div class="alert alert-error">
+          <p>{{i18n "event_duplicator.review.result.skipped_heading"}}</p>
+          <ul>
+            {{#each this.result.skipped as |entry|}}
+              <li>
+                {{entry.title}}:
+                {{#if entry.existing_duplicate_topic_id}}
+                  {{i18n
+                    "event_duplicator.review.already_duplicated"
+                    topic_id=entry.existing_duplicate_topic_id
+                  }}
+                {{else}}
+                  {{entry.reason}}
+                {{/if}}
+              </li>
+            {{/each}}
+          </ul>
+        </div>
+      {{/if}}
+    </div>
+  {{/if}}
 </div>

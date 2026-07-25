@@ -8,6 +8,7 @@ export default class EventDuplicatorController extends Controller {
   @service router;
 
   @tracked isDuplicating = false;
+  @tracked result = null;
 
   queryParams = [
     "topic_id",
@@ -32,6 +33,7 @@ export default class EventDuplicatorController extends Controller {
   @action
   async confirmDuplication(selectedItems) {
     this.isDuplicating = true;
+    this.result = null;
 
     // `already_duplicated` topics default to unselected (see
     // DuplicatableTopicSerializer#selected) specifically so a second series
@@ -48,8 +50,26 @@ export default class EventDuplicatorController extends Controller {
       force: item.topic.already_duplicated,
     }));
 
+    // The backend response's `duplicated`/`skipped` entries only carry
+    // `topic_id`, not a title -- keep a local lookup (preferring the
+    // reviewer's edited title, if any) so the result panel can show a
+    // human-readable label rather than a bare id.
+    const titlesByTopicId = new Map(
+      selectedItems.map((item) => [item.topic.id, item.title])
+    );
+
     try {
-      await this.eventDuplicator.duplicate(items);
+      const response = await this.eventDuplicator.duplicate(items);
+      this.result = {
+        duplicated: response.duplicated.map((entry) => ({
+          ...entry,
+          title: titlesByTopicId.get(entry.topic_id),
+        })),
+        skipped: response.skipped.map((entry) => ({
+          ...entry,
+          title: titlesByTopicId.get(entry.topic_id),
+        })),
+      };
     } finally {
       this.isDuplicating = false;
     }

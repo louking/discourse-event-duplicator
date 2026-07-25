@@ -135,6 +135,22 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
         expect(response.parsed_body["title"]).to eq(topic.title)
         expect(response.parsed_body["original_start"]).to eq("2026-05-24T13:00:00.000Z")
         expect(response.parsed_body["proposed_start"]).to eq("2027-05-24T13:00:00.000Z")
+        expect(response.parsed_body["already_duplicated"]).to eq(false)
+        expect(response.parsed_body["existing_duplicate_topic_id"]).to be_nil
+      end
+
+      it "flags a topic already duplicated to the same target year" do
+        duplicate_topic = Fabricate(:topic)
+        DiscourseEventDuplicator::DuplicationTracker.record!(
+          source_topic: topic,
+          new_topic: duplicate_topic,
+          starts_at: Time.zone.parse("2027-05-24 13:00"),
+        )
+
+        get "/event-duplicator/topics/#{topic.id}/proposed_dates.json"
+
+        expect(response.parsed_body["already_duplicated"]).to eq(true)
+        expect(response.parsed_body["existing_duplicate_topic_id"]).to eq(duplicate_topic.id)
       end
     end
 

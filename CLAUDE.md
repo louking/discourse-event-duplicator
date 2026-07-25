@@ -119,7 +119,11 @@ and `routes.append`-vs-`draw` bugs after the fact instead of before — run it f
   - `GET /event-duplicator/tags/:tag_name/topics` — list deduped topics for series duplication, with
     proposed dates and `already_duplicated` flags attached.
   - `GET /event-duplicator/topics/:topic_id/proposed_dates` — compute the proposed next-occurrence date(s)
-    for a single topic.
+    for a single topic, plus (matching `#tagged_topics` above) `already_duplicated`/
+    `existing_duplicate_topic_id` from `DuplicationTracker` for that same proposed date. This used to be
+    series-only — the single-topic (topic-admin button) review page silently always showed a topic as not
+    yet duplicated, even when it had been, until a user noticed the review row for an already-duplicated
+    topic wasn't flagged the way the series flow's rows were.
   - `POST /event-duplicator/duplicate` — perform the duplication for `params[:items]` (each with
     `topic_id`, `starts_at`, optional `tbd`/`force`/`title` — no `ends_at`, see `TopicDuplicator` above); each item
     is authorized and checked against `DuplicationTracker` independently (items may span categories), and
@@ -143,8 +147,10 @@ and `routes.append`-vs-`draw` bugs after the fact instead of before — run it f
   duplicate-tracking data out of the AMS `options` hash (`options.dig(:proposed_dates, object.id)`, not
   `instance_options` — this repo is on `active_model_serializers` 0.8.x, an older API than the
   `instance_options` name suggests). The `#proposed_dates` controller action returns the same
-  `original_start`/`original_end` fields directly in its JSON (it doesn't go through this serializer, since
-  it's a single ad-hoc topic, not a collection).
+  `original_start`/`original_end`/`already_duplicated`/`existing_duplicate_topic_id` fields directly in its
+  JSON (it doesn't go through this serializer, since it's a single ad-hoc topic, not a collection) —
+  computed the same way (`DuplicationTracker.existing_duplicate_for`), just inlined rather than shared,
+  so any future change to how "already duplicated" is determined needs updating in both places.
 - `app/controllers/discourse_event_duplicator/pages_controller.rb` — serves the plain Discourse SPA shell
   (`raise ::ApplicationController::RenderEmpty`) for `/event-duplicator/new` and `/event-duplicator/review`.
   Required because those are Ember-only client routes: without a real backend action for them, a full page
@@ -232,12 +238,30 @@ request, since items can span categories.
   `starts_before`/`date_strategy` for series mode) rather than a dynamic segment, so both entry points share
   one route/review UI. Resolves `date_strategy` to `params.date_strategy || siteSettings.event_duplicator_default_date_strategy`
   and passes the resolved value through as `model.dateStrategy`, both to actually use it and so the review
-  page's date-rule `<select>` has a real value to show/default to.
+  page's date-rule `<select>` has a real value to show/default to. `modelForSingleTopic` maps
+  `already_duplicated`/`existing_duplicate_topic_id`/`selected` straight off the `proposed_dates` response
+  (see the controller action above) rather than hardcoding `already_duplicated: false` — an earlier version
+  of this route did hardcode it, since single-topic mode was added before series mode's dedup-flagging was;
+  that meant the review row for an already-duplicated topic looked identical to a fresh one right up until
+  clicking "Duplicate selected", when the backend would silently skip it anyway (see `#duplicate`'s
+  per-item `skipped` handling). Fixed once the confirmation-result panel below made that silent skip visible
+  enough for a user to notice and ask why the row wasn't flagged like the series flow's rows are.
 - `controllers/event-duplicator.js` — holds `isDuplicating` state, `confirmDuplication` (maps selected review
   items to `{ topic_id, starts_at, tbd, title }` before calling the service — no `ends_at`; see
   `TopicDuplicator` on the backend), and `setDateStrategy` (a `<select>` change handler that `transitionTo`s
   with a new `date_strategy` query param — the route's `queryParams` config has `refreshModel: true` for it,
   so this alone re-runs `model()` with the new strategy and recomputes every row's proposed dates).
+  `confirmDuplication` also stores the `duplicate()` response on `@tracked result` (`{ duplicated, skipped }`,
+  each entry joined with a `title` looked up from the submitted items, since the backend response itself only
+  carries topic ids) — `templates/event-duplicator.hbs` renders this as a panel below the review table once
+  set: a success list of links to each newly created duplicate, and an error list of skipped items with their
+  reason (including a link-style "already duplicated to topic #N" message, reusing the same locale string the
+  review table's own already-duplicated annotation uses). Confirming used to `await` the response and then
+  discard it entirely, so clicking "Duplicate selected" gave no feedback at all beyond the button's disabled
+  state — a real gap a user hit and reported. `result` is plain in-memory controller state, not persisted
+  anywhere (not a query param, not localStorage) — a hard page reload re-instantiates the controller and
+  re-runs `model()`, which clears it back to `null`; this is deliberate (same as any flash-style confirmation)
+  rather than a bug, since the underlying duplicate topic itself isn't lost, only the confirmation banner.
 - `components/event-duplicator-review.gjs` — the review/edit step: an editable **Topic** title (pre-filled
   from `topic.title`, plain `<input type="text">`) alongside the start date (**Old start**, read-only, from
   `topic.original_start`; **New start**, editable) — there's no end-date column, since the backend always

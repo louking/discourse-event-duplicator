@@ -34,6 +34,14 @@
   .event-duplicator-date-strategy select {
     min-width: 20em;
   }
+
+  .event-duplicator-result {
+    margin-top: 1em;
+
+    ul {
+      margin-bottom: 0;
+    }
+  }
 }
 
 .event-duplicator-new-page {
