@@ -8,6 +8,15 @@ export function canDuplicateEvents(currentUser, siteSettings) {
     return false;
   }
 
+  // `enabled_site_setting :event_duplicator_enabled` gates the plugin's
+  // backend routes/hooks, but does nothing to a JS bundle that's already
+  // loaded -- since the setting is `client: true` specifically so it takes
+  // effect live (without a restart), the frontend has to check it itself
+  // rather than relying solely on the backend being gone.
+  if (!siteSettings.event_duplicator_enabled) {
+    return false;
+  }
+
   // Mirrors the backend's `can_create_calendar_event?` -- discourse-calendar
   // serializes this directly onto current_user (see e.g. its own
   // add-events-create-topic-button.js), so this reads discourse-calendar's

@@ -14,7 +14,7 @@ duplication pipeline (`DateShifter`, `TopicDeduplicator`, `TopicDuplicator`, `Du
 implemented and covered by specs. The frontend has real entry points (a sidebar link + picker page for
 series duplication, a topic-admin menu button for single-topic duplication) and the review step supports
 editing the proposed start/end date per topic and flagging one as "date TBD" — see the Frontend section
-below.
+below. The frontend also has QUnit coverage now (`test/javascripts/`) — see "QUnit tests" under Commands.
 
 This repo is meant to be developed as a plugin cloned into a Discourse core checkout's `plugins/` directory
 (it is not runnable standalone).
@@ -33,28 +33,48 @@ bundle exec rubocop plugins/discourse-event-duplicator                          
 From this repo's own directory (JS tooling is self-contained via `package.json`):
 
 ```bash
-yarn eslint assets/javascripts        # or: npm run lint
-npx prettier --check "assets/**/*.{js,gjs,hbs,scss}"
+yarn eslint assets/javascripts test/javascripts   # or: npm run lint
+npx prettier --check "assets/**/*.{js,gjs,hbs,scss}" "test/**/*.{js,gjs}"
 ```
 
 `.gjs` formatting/linting needs `prettier-plugin-ember-template-tag` (a devDependency here, wired up in
 `.prettierrc.cjs`) — without it, `prettier --check`/`--write` errors with "No parser could be inferred" on
 any `.gjs` file rather than silently skipping it.
 
+QUnit tests live in `test/javascripts/` (`unit/`, `components/`, `acceptance/` — auto-discovered by
+Discourse's plugin test convention, no extra config needed). Run from the Discourse core checkout:
+
+```bash
+bin/rake plugin:qunit[discourse-event-duplicator]
+```
+
+This needs a real Chrome/Chromium binary on `PATH` (checked via `command -v google-chrome-stable` /
+`google-chrome` / `chromium` — see `lib/chrome_installed_checker.rb` in core) and, outside a real CI
+container, `DISCOURSE_DISABLE_BROWSER_SANDBOX=1` set (otherwise Chrome's sandbox silently fails to render
+anything and Testem times out after 30s with "Browser made no test progress", which looks like a hang, not
+a sandbox error — `testem.js` only passes `--no-sandbox` automatically when `CI` is set). In this WSL2 dev
+environment there's no system Chrome and no passwordless sudo to install one, but a Playwright-downloaded
+Chromium already exists at `~/.cache/ms-playwright/chromium-*/chrome-linux64/chrome`; a `chromium` wrapper
+script on `PATH` pointing at it (with `LD_LIBRARY_PATH` set per the headless-browser library workaround in
+`dev_environment_discourse_core` memory) satisfies the checker without a real install.
+
 CI (`.github/workflows/discourse-plugin.yml`) delegates to Discourse's shared `discourse-plugin.yml`
 reusable workflow, which runs the Ruby and JS lints above plus `ember-template-lint` on `.hbs` files, *and*
-auto-detects and runs this repo's actual test types against a real Discourse core + Postgres + Redis — for
-now that's just the RSpec backend suite in `spec/`, since there are no QUnit/system tests yet. This means
-every push/PR actually runs `bin/rspec plugins/discourse-event-duplicator/spec` for real, not just lint —
-keep specs passing locally before pushing, since CI will now catch what lint alone can't (e.g. wrong
-Guardian/Category API usage that only fails at runtime).
+auto-detects and runs this repo's actual test types against a real Discourse core + Postgres + Redis — this
+now includes both the RSpec backend suite in `spec/` and the QUnit suite in `test/javascripts/`. This means
+every push/PR actually runs both for real, not just lint — keep both green locally before pushing, since CI
+will catch what lint alone can't (e.g. wrong Guardian/Category API usage that only fails at runtime, or a
+frontend regression only visible once the app actually boots and renders).
 
-**Run `bin/local-ci` before pushing.** It runs the same checks as CI (eslint, rubocop, `zeitwerk:check`,
-a dev-mode reload check, and the RSpec suite) against a local Discourse core checkout, in ~20 seconds —
-versus several minutes for CI's from-scratch spin-up. It assumes a Discourse core checkout at
+**Run `bin/local-ci` before pushing.** It runs the same checks as CI (eslint, prettier, rubocop,
+`zeitwerk:check`, a dev-mode reload check, and the RSpec suite) against a local Discourse core checkout, in
+~20 seconds — versus several minutes for CI's from-scratch spin-up. It assumes a Discourse core checkout at
 `~/discourse` with this plugin symlinked into `plugins/discourse-event-duplicator`; override with the
 `DISCOURSE_ROOT` env var if yours lives elsewhere. This is what caught the `guardian.can_create_topic?`
-and `routes.append`-vs-`draw` bugs after the fact instead of before — run it first next time.
+and `routes.append`-vs-`draw` bugs after the fact instead of before — run it first next time. **It does not
+yet run the QUnit suite** (that needs the Chrome-on-PATH/sandbox setup described under "QUnit tests" above,
+which is more environment-specific than the other checks) — run `bin/rake
+plugin:qunit[discourse-event-duplicator]` from `~/discourse` separately before pushing a frontend change.
 
 ## Architecture
 
@@ -198,11 +218,19 @@ follow the same pattern for new actions. `duplicate` re-checks this per item rat
 request, since items can span categories.
 
 **Frontend (`assets/javascripts/discourse/`)**
-- `lib/can-duplicate-events.js` — `canDuplicateEvents(currentUser, siteSettings)` mirrors the backend's
-  group-membership half of `can_duplicate_into?` (intersects `currentUser.groups` against the pipe-separated
+- `lib/can-duplicate-events.js` — `canDuplicateEvents(currentUser, siteSettings)` first checks
+  `siteSettings.event_duplicator_enabled` itself, then mirrors the backend's group-membership half of
+  `can_duplicate_into?` (intersects `currentUser.groups` against the pipe-separated
   `siteSettings.event_duplicator_allowed_groups`). The category-permission half is handled separately by
   reusing `category.canCreateTopic` / `CategoryChooser`'s default `FULL`-permission filtering, rather than
-  reimplementing that check in JS.
+  reimplementing that check in JS. The `event_duplicator_enabled` check is necessary even though
+  `enabled_site_setting :event_duplicator_enabled` in `plugin.rb` already gates the plugin's backend
+  routes/hooks — that Ruby-side gating controls whether a *freshly-served* JS bundle includes this plugin at
+  all, but does nothing to unload a bundle that's already loaded in a running tab. The setting is
+  `client: true` specifically so toggling it takes effect live without a restart (per the manual test plan in
+  GitHub issue #2), which only works if the frontend itself re-checks the setting on every render — found via
+  the QUnit acceptance test in `test/javascripts/acceptance/event-duplicator-entry-points-test.js` that
+  exercises `event_duplicator_enabled: false`, previously an unchecked item in that issue's checklist.
 - `api-initializers/event-duplicator.js` — `import { apiInitializer } from "discourse/lib/api"` (not
   `discourse/lib/plugin-api`, which no longer exports it), called as `apiInitializer((api) => {...})` with no
   version-string argument — the version-string call form is silently accepted for backwards compatibility
@@ -332,6 +360,43 @@ request, since items can span categories.
   form that actually works. The two top-level route templates (`templates/event-duplicator.hbs`,
   `templates/event-duplicator-new.hbs`) are still classic `.hbs` and log a (non-blocking) `.hbs` extension
   deprecation warning on boot — only worth converting to `.gjs` if that warning becomes an enforced error.
+
+**Frontend tests (`test/javascripts/`)** — added to close the "frontend has no automated coverage" gap
+tracked in GitHub issue #2 (section 12), after several real bugs documented throughout this file (the
+`apiInitializer` import path, `.gjs` colocation, the engine-mount routing quirk, native date-input clearing,
+stale `@tracked` state on date-rule change, and jQuery array serialization on `duplicate`) had only ever been
+caught by live manual testing:
+- `unit/lib/can-duplicate-events-test.js` — pure-function coverage of every `canDuplicateEvents` branch.
+- `unit/controllers/event-duplicator-new-test.js` / `event-duplicator-test.js` — controllers looked up via
+  `owner.lookup("controller:...")` (matches the plugin-controller-testing convention used elsewhere in
+  Discourse core/plugins, e.g. `discourse-subscriptions`'s own controller specs) rather than importing the
+  class directly; services are stubbed by `owner.unregister`/`owner.register`-ing a fake in their place.
+  **Services are resolved and cached on a controller's `@service` property on first access** — swapping the
+  registered service mid-test (tried first, for the `confirmDuplication` retry-accumulation test) silently
+  keeps talking to the *first* stub instead of a freshly-registered second one; use a single stub with
+  `sinon.stub().onCall(n).resolves(...)` per call instead.
+- `components/event-duplicator-review-test.gjs` — renders the real component via `setupRenderingTest` +
+  `render()` (not `withPluginApi`/full acceptance boot), covering the date-rule-switch edits-survive
+  regression, header select-all/TBD-all checkboxes, already-duplicated/just-duplicated row rendering, and
+  `confirm()`'s payload shape. **Reassigning a test context property after the initial `render()` call must
+  go through `this.set("prop", value)`, not plain `this.prop = value`** — confirmed live as an actual test
+  bug: plain assignment before the first render works fine (nothing needs to react yet), but a plain
+  reassignment *after* render silently fails to trigger a re-render (even followed by `await settled()`),
+  because the render-test context only notifies Ember's rendering system of a change through `.set()`.
+- `acceptance/event-duplicator-entry-points-test.js` — boots the real app (`acceptance()` +
+  `needs.pretender`) to cover the sidebar link and topic-admin button across permission combinations,
+  including the `event_duplicator_enabled` gap this test suite found (see `can-duplicate-events.js` above).
+  Visiting a topic page needs a pretender for `GET /t/:id.json` (not `/t/:id/:post_number.json`, despite that
+  being the fixture-key convention seen in some core tests for a *different* route shape — confirmed by
+  reading the actual request logged on a failing "Unhandled request" error rather than by inference) built by
+  cloning `topicFixtures["/t/9/1.json"]` and patching `id`/`slug`/`category_id`. **All of a single
+  `acceptance(...)` block's pretender setup must go through one `needs.pretender(...)` call, not several** —
+  calling it twice throws "There is already a pretender callback with module name (...)", since the callback
+  registry is keyed by the acceptance block's name, not accumulated per-call.
+
+Run via `bin/rake plugin:qunit[discourse-event-duplicator]` from the Discourse core checkout — see "QUnit
+tests" under Commands above for the Chrome/sandbox setup this needs. `bin/local-ci` lints `test/javascripts`
+(via `package.json`'s `lint` script and the `prettier` glob) but does not run the QUnit suite itself.
 
 ## Key external dependency
 

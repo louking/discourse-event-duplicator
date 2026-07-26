@@ -14,10 +14,10 @@ if [ ! -x "$DISCOURSE_ROOT/bin/rails" ]; then
 fi
 
 echo "==> eslint"
-(cd "$PLUGIN_DIR" && yarn eslint assets/javascripts)
+(cd "$PLUGIN_DIR" && yarn eslint assets/javascripts test/javascripts)
 
 echo "==> prettier"
-(cd "$PLUGIN_DIR" && npx prettier --check "assets/**/*.{js,gjs,hbs,scss}")
+(cd "$PLUGIN_DIR" && npx prettier --check "assets/**/*.{js,gjs,hbs,scss}" "test/**/*.{js,gjs}")
 
 echo "==> rubocop"
 (cd "$DISCOURSE_ROOT" && bundle exec rubocop "plugins/$PLUGIN_NAME")
