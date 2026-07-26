@@ -291,26 +291,87 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
     context "when not authorized" do
       before { sign_in(non_member) }
 
-      it "returns 403" do
+      it "skips the item as unauthorized rather than erroring the whole request" do
         post "/event-duplicator/duplicate.json",
              params: {
                items: [{ topic_id: topic.id, starts_at: "2027-05-24T13:00:00Z" }],
              }
 
-        expect(response.status).to eq(403)
+        expect(response.status).to eq(200)
+        json = response.parsed_body
+        expect(json["duplicated"]).to be_empty
+        expect(json["skipped"]).to contain_exactly(a_hash_including("topic_id" => topic.id, "reason" => "unauthorized"))
       end
     end
 
     context "when discourse-calendar doesn't let the user create events" do
       before { sign_in(calendar_restricted_member) }
 
-      it "returns 403 despite passing this plugin's own category and group checks" do
+      it "skips the item as unauthorized despite passing this plugin's own category and group checks" do
         post "/event-duplicator/duplicate.json",
              params: {
                items: [{ topic_id: topic.id, starts_at: "2027-05-24T13:00:00Z" }],
              }
 
-        expect(response.status).to eq(403)
+        expect(response.status).to eq(200)
+        json = response.parsed_body
+        expect(json["duplicated"]).to be_empty
+        expect(json["skipped"]).to contain_exactly(a_hash_including("topic_id" => topic.id, "reason" => "unauthorized"))
+      end
+    end
+
+    context "when items span multiple categories with different permissions" do
+      fab!(:other_restricted_group, :group)
+      fab!(:other_category) do
+        Fabricate(:category).tap do |c|
+          c.set_permissions(other_restricted_group.id => CategoryGroup.permission_types[:full])
+          c.save!
+        end
+      end
+      fab!(:other_topic) { Fabricate(:topic, category: other_category, title: "Other Grand Prix") }
+      fab!(:other_first_post) { Fabricate(:post, topic: other_topic) }
+      fab!(:other_event) do
+        Fabricate(
+          :event,
+          post: other_first_post,
+          name: "Other Grand Prix",
+          original_starts_at: "2026-06-01 13:00",
+        )
+      end
+
+      before { sign_in(member) }
+
+      it "processes the authorized item and reports the unauthorized one as skipped, not aborting the batch" do
+        expect {
+          post "/event-duplicator/duplicate.json",
+               params: {
+                 items: [
+                   { topic_id: topic.id, starts_at: "2027-05-24T13:00:00Z" },
+                   { topic_id: other_topic.id, starts_at: "2027-06-01T13:00:00Z" },
+                 ],
+               }
+        }.to change { Topic.count }.by(1)
+
+        expect(response.status).to eq(200)
+        json = response.parsed_body
+        expect(json["duplicated"].map { |d| d["topic_id"] }).to contain_exactly(topic.id)
+        expect(json["skipped"].map { |s| s["topic_id"] }).to contain_exactly(other_topic.id)
+        expect(json["skipped"].first["reason"]).to eq("unauthorized")
+      end
+
+      it "still processes a later authorized item even when an earlier one is unauthorized" do
+        post "/event-duplicator/duplicate.json",
+             params: {
+               items: [
+                 { topic_id: other_topic.id, starts_at: "2027-06-01T13:00:00Z" },
+                 { topic_id: topic.id, starts_at: "2027-05-24T13:00:00Z" },
+               ],
+             }
+
+        expect(response.status).to eq(200)
+        json = response.parsed_body
+        expect(json["duplicated"].map { |d| d["topic_id"] }).to contain_exactly(topic.id)
+        expect(json["skipped"].map { |s| s["topic_id"] }).to contain_exactly(other_topic.id)
       end
     end
   end

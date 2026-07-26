@@ -77,7 +77,14 @@ module ::DiscourseEventDuplicator
     # Performs the duplication for the reviewed/edited set of topics. Each
     # item is authorized and checked against DuplicationTracker
     # independently -- items may span categories, so the top-level request
-    # can't be authorized once for all of them.
+    # can't be authorized once for all of them. An unauthorized item is
+    # pushed onto `skipped` (like an already-duplicated or validation
+    # failure) rather than raising: the loop isn't wrapped in a transaction,
+    # so an earlier item's `TopicDuplicator`/`DuplicationTracker.record!` call
+    # has already committed by the time a later item's authorization check
+    # runs -- raising there used to abort the whole request with a bare 403,
+    # silently leaving that earlier duplicate topic in place while reporting
+    # nothing back to the client at all.
     def duplicate
       duplicated = []
       skipped = []
@@ -86,7 +93,10 @@ module ::DiscourseEventDuplicator
         topic = Topic.find_by(id: item[:topic_id])
         raise Discourse::NotFound if topic.blank?
 
-        ensure_can_duplicate_into!(topic.category)
+        unless can_duplicate_into?(topic.category)
+          skipped << { topic_id: topic.id, reason: "unauthorized" }
+          next
+        end
 
         starts_at = parse_time(item[:starts_at])
         force = ActiveModel::Type::Boolean.new.cast(item[:force])

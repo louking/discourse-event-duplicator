@@ -126,9 +126,10 @@ setting, can't use this plugin either, regardless of the settings above.
 - Duplicating deliberately reuses the source topic's title — that's the point, it's the same event next
   time around. This intentionally bypasses Discourse's usual "no duplicate topic titles" check for this one
   action, since it's expected/normal here, not a mistake.
-- If a duplicate can't be created for some other reason (a genuine validation problem), it shows up in the
-  same post-duplication panel as skipped, with the reason why, rather than silently failing or duplicating
-  everything else.
+- If a duplicate can't be created for some other reason (a genuine validation problem, or your permission to
+  duplicate into that topic's category changing between loading the review page and clicking "Duplicate
+  selected"), it shows up in the same post-duplication panel as skipped, with the reason why, rather than
+  silently failing or duplicating everything else.
 - Deleting a duplicate topic frees up its source topic for that occurrence again — the "duplicated to topic"
   link disappears next time you run the duplicator, exactly as if that duplicate had never been created. If
   you undo the deletion (recover the topic from trash), the flag comes right back too, so you can't end up
