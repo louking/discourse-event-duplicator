@@ -120,8 +120,8 @@ These are configured under **Admin → Settings**, searching for `event duplicat
 - If a duplicate can't be created for some other reason (a genuine validation problem), it shows up in the
   same post-duplication panel as skipped, with the reason why, rather than silently failing or duplicating
   everything else.
-- Deleting a duplicate topic frees up its source topic for that occurrence again — the "Already duplicated"
-  flag disappears next time you run the duplicator, exactly as if that duplicate had never been created. If
+- Deleting a duplicate topic frees up its source topic for that occurrence again — the "duplicated to topic"
+  link disappears next time you run the duplicator, exactly as if that duplicate had never been created. If
   you undo the deletion (recover the topic from trash), the flag comes right back too, so you can't end up
   with two duplicates for the same occurrence just by deleting-then-recovering one. This only applies to
   topics duplicated after this behavior was added — a duplicate created before then won't free up its source
