@@ -21,13 +21,17 @@ const READ_ONLY_CATEGORY = {
   permission: 2, // PermissionType.CREATE_POST -- can reply, can't create topics
 };
 
-function withTopicPage(needs, { id, category, proposedDates }) {
+function withTopicPage(
+  needs,
+  { id, category, proposedDates, hasEvent = true }
+) {
   needs.pretender((server, helper) => {
     server.get(`/t/${id}.json`, () => {
       const topic = cloneJSON(topicFixtures["/t/9/1.json"]);
       topic.id = id;
       topic.slug = "grand-prix";
       topic.category_id = category.id;
+      topic.event_duplicator_has_event = hasEvent;
       return helper.response(topic);
     });
 
@@ -179,6 +183,36 @@ acceptance(
 
     test("topic-admin button is hidden on a topic in a category the user can't create topics in, even though the group check passes", async function (assert) {
       await visit("/t/grand-prix/9004");
+      await click(".toggle-admin-menu");
+
+      assert.dom(".event-duplicator-duplicate-topic").doesNotExist();
+    });
+  }
+);
+
+acceptance(
+  "Event Duplicator - entry points (topic has no discourse-calendar event)",
+  function (needs) {
+    needs.user({
+      can_create_discourse_post_event: true,
+      groups: [{ id: 3, name: "staff" }],
+    });
+    needs.settings({
+      event_duplicator_enabled: true,
+      event_duplicator_allowed_groups: "3",
+    });
+    needs.site({ categories: [ALLOWED_CATEGORY] });
+    withTopicPage(needs, {
+      id: 9005,
+      category: ALLOWED_CATEGORY,
+      hasEvent: false,
+    });
+
+    // Regression test for GitHub issue #10: clicking this button on an
+    // event-less topic used to route to the review page, which then 404'd
+    // from `#proposed_dates` since it requires `topic.first_post&.event`.
+    test("topic-admin button is hidden, even though the group and category checks pass", async function (assert) {
+      await visit("/t/grand-prix/9005");
       await click(".toggle-admin-menu");
 
       assert.dom(".event-duplicator-duplicate-topic").doesNotExist();

@@ -50,6 +50,9 @@ Use this when you have several related event topics — e.g. every race in a sea
 Open the topic you want to duplicate, use its admin/wrench menu, and choose **Duplicate event**. This skips
 the picker step and takes you straight to the review page for that one topic.
 
+The button only appears on topics that actually have a discourse-calendar event — it won't show on an
+ordinary topic, even if you otherwise meet all three conditions above.
+
 ## The review page
 
 Each row is one event topic that will be duplicated if you leave it checked.

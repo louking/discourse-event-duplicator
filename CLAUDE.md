@@ -82,7 +82,12 @@ plugin:qunit[discourse-event-duplicator]` from `~/discourse` separately before p
 - `plugin.rb` — plugin entry point. Gated by site setting `event_duplicator_enabled`. Registers the
   `event_duplicator_duplications` topic custom field (see `DuplicationTracker` below). On
   `after_initialize`, warns (does not hard-fail) if `discourse-calendar` isn't installed, since this plugin
-  depends on its `DiscoursePostEvent::Event` data but doesn't declare a hard gem/plugin dependency.
+  depends on its `DiscoursePostEvent::Event` data but doesn't declare a hard gem/plugin dependency. Also adds
+  an `event_duplicator_has_event` attribute onto Discourse core's `topic_view` serializer
+  (`object.topic.first_post&.event.present?`), purely so the frontend's topic-admin button (see
+  `api-initializers/event-duplicator.js` below) can tell whether a topic has a discourse-calendar event at
+  all before rendering — `add_to_serializer` respects `enabled_site_setting` by default, so this attribute is
+  itself already gated on `event_duplicator_enabled` for free, same as everything else here.
 - `lib/discourse_event_duplicator/engine.rb` — isolated Rails engine (`DiscourseEventDuplicator` namespace),
   autoloads `lib/`.
 - `lib/discourse_event_duplicator/date_shifter.rb` — proposes new date(s) for a duplicated event via a
@@ -236,11 +241,19 @@ request, since items can span categories.
   version-string argument — the version-string call form is silently accepted for backwards compatibility
   but the import path isn't, so getting this wrong throws `apiInitializer is not a function` at runtime, not
   a lint/build error. Registers the two entry points, each gated on `canDuplicateEvents` (plus, for the
-  topic-admin button, `topic.category.canCreateTopic`) so controls simply don't render for users who couldn't
-  use them:
+  topic-admin button, `topic.category.canCreateTopic` and `topic.event_duplicator_has_event`) so controls
+  simply don't render for users who couldn't use them:
   - `api.addCommunitySectionLink` — a sidebar link to the picker page (series duplication).
   - `api.addTopicAdminMenuButton` — a per-topic button that routes into the review step for that one topic
-    (single-topic duplication).
+    (single-topic duplication). The `topic.event_duplicator_has_event` check (backed by a `topic_view`
+    serializer attribute added in this plugin's own `plugin.rb`) exists because the button used to render on
+    *any* topic regardless of whether it had a discourse-calendar event at all — clicking it then routed to
+    the review page, which 404'd from `#proposed_dates` (`Discourse::NotFound` when `topic.first_post&.event`
+    is blank), similar in spirit to the already-fixed #6 (GitHub issue #10). discourse-calendar's own
+    `event_starts_at` topic_view attribute wasn't reused for this check because it's gated behind the
+    unrelated `display_post_event_date_on_topic_title` site setting, so it can be absent even when the topic
+    does have an event; this plugin's own attribute is computed directly off
+    `topic.first_post&.event.present?` instead, with no such dependency.
 - `routes/event-duplicator-new.js` / `controllers/event-duplicator-new.js` /
   `templates/event-duplicator-new.hbs` — the picker page: category (`<CategoryChooser>`) + multi-tag OR
   select (`<TagChooser>`) + optional, clearable source-event date range (plain `<input type="date">` +

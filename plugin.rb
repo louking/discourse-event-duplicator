@@ -19,6 +19,17 @@ end
 require_relative "lib/discourse_event_duplicator/engine"
 
 after_initialize do
+  # Lets the frontend hide the topic-admin "Duplicate event" button on
+  # topics with no discourse-calendar event, instead of rendering it and
+  # then 404ing on the review page once clicked (see GitHub issue #10).
+  # discourse-calendar's own `event_starts_at` topic_view attribute isn't
+  # suitable for this: it's gated behind the unrelated
+  # `display_post_event_date_on_topic_title` site setting, so it can be
+  # absent from the payload even when the topic does have an event.
+  add_to_serializer(:topic_view, :event_duplicator_has_event) do
+    object.topic.first_post&.event.present?
+  end
+
   register_topic_custom_field_type(
     DiscourseEventDuplicator::DuplicationTracker::FIELD_NAME,
     :json,

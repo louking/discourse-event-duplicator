@@ -40,14 +40,22 @@ export default apiInitializer((api) => {
 
   // Single-topic duplication: a topic-admin menu button, gated on the same
   // combined check the backend enforces (group membership here, category
-  // permission via `canCreateTopic`) so it simply doesn't render for users
-  // who couldn't use it anyway.
+  // permission via `canCreateTopic`) plus the topic actually having a
+  // discourse-calendar event -- without that last check, the button would
+  // render on any topic and clicking it would 404 on the review page (the
+  // backend requires `topic.first_post&.event`; see GitHub issue #10). This
+  // relies on `event_duplicator_has_event`, added onto the topic_view
+  // serializer in this plugin's own `plugin.rb`.
   api.addTopicAdminMenuButton((topic) => {
     if (!canDuplicateEvents(currentUser, siteSettings)) {
       return null;
     }
 
     if (!topic.category?.canCreateTopic) {
+      return null;
+    }
+
+    if (!topic.event_duplicator_has_event) {
       return null;
     }
 
