@@ -173,17 +173,27 @@ load. Mirrors the pattern `discourse-calendar` uses in its own `config/routes.rb
 **Plugin route files only load at boot** (like `plugin.rb`) — changes here need a `bin/dev` restart, editing
 `config/routes.rb` alone does not hot-reload the way editing plugin JS does.
 
-**Authorization model — this is the one thing to get right in any change touching access control:** two
-independent checks are AND'd together. A user may duplicate into a category only if **both** (1)
-`guardian.can_create_topic_on_category?(category)` is true (Discourse's own category permissions), **and**
-(2) the user belongs to one of the groups in the `event_duplicator_allowed_groups` site setting (a
-`group_list` setting, default staff-only — group id `3`). Category permissions alone are *not* sufficient:
+**Authorization model — this is the one thing to get right in any change touching access control:** three
+independent checks are AND'd together. A user may duplicate into a category only if **all** of (1)
+`guardian.can_create_topic_on_category?(category)` is true (Discourse's own category permissions), (2) the
+user belongs to one of the groups in the `event_duplicator_allowed_groups` site setting (a `group_list`
+setting, default staff-only — group id `3`), and (3) `guardian.can_create_discourse_post_event?` is true
+(discourse-calendar's own gate on who may create `[event]` posts at all, backed by its
+`discourse_post_event_allowed_on_groups` site setting). Category permissions alone are *not* sufficient:
 bulk-duplicating a whole series is a much heavier action than posting a single topic, so it's gated further
 by this plugin-specific allowlist. Note the setting's real semantics: an **empty** list means *nobody*
 passes (Discourse's `_allowed_groups` convention), not "unrestricted" — to fully open this up, add the
-"everyone" auto-group (id `0`), don't empty the list. Every controller action must resolve the target
-category and call `ensure_can_duplicate_into!(category)` before doing anything else; see the private helpers
-(`find_category!`, `find_topic!`, `ensure_can_duplicate_into!`, `can_duplicate_into?`) in the controller and
+"everyone" auto-group (id `0`), don't empty the list. Check (3) is deliberately implemented by calling
+discourse-calendar's own `Guardian#can_create_discourse_post_event?` (`can_create_calendar_event?` in the
+controller) rather than reading `discourse_post_event_allowed_on_groups` directly — this plugin doesn't need
+to know discourse-calendar's own config shape, and stays correct if discourse-calendar changes how that
+check works; it's guarded with `guardian.respond_to?` so the (non-standard) case of discourse-calendar being
+genuinely absent doesn't newly hard-block on a check it can't answer (see the "warn, don't hard-fail" handling
+in `plugin.rb`). The frontend's `canDuplicateEvents` mirrors this the same way, reading discourse-calendar's
+own serialized `currentUser.can_create_discourse_post_event` rather than reimplementing its group check in
+JS. Every controller action must resolve the target category and call `ensure_can_duplicate_into!(category)`
+before doing anything else; see the private helpers (`find_category!`, `find_topic!`,
+`ensure_can_duplicate_into!`, `can_duplicate_into?`, `can_create_calendar_event?`) in the controller and
 follow the same pattern for new actions. `duplicate` re-checks this per item rather than once for the whole
 request, since items can span categories.
 

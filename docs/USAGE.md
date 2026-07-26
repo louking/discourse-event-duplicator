@@ -17,15 +17,17 @@ the source topic is left exactly as it was.
 
 ## Who can use it
 
-Two things both have to be true for a given category:
+Three things all have to be true for a given category:
 
 1. You must already be able to create topics in that category (the same permission Discourse uses for
    "can you post here at all").
 2. You must belong to one of the groups configured in the **event_duplicator_allowed_groups** site setting.
    By default this is staff only — an admin can add other groups (e.g. a "race organizers" group) to open it
    up further.
+3. You must be allowed to create calendar events at all, per discourse-calendar's own
+   **discourse_post_event_allowed_on_groups** site setting.
 
-If either of those isn't true, you won't see the "Event Duplicator" link in the sidebar or the "Duplicate
+If any of those isn't true, you won't see the "Event Duplicator" link in the sidebar or the "Duplicate
 event" button on a topic — the controls simply don't appear, rather than showing and then failing.
 
 ## Duplicating a whole series
@@ -111,6 +113,10 @@ These are configured under **Admin → Settings**, searching for `event duplicat
   someone hasn't changed the dropdown.
 - **event_duplicator_tbd_annotation** — the text appended to a duplicate's title/event name when it's
   flagged "date TBD" (default `" (date TBD)"`). Set it blank to disable the annotation feature entirely.
+
+This plugin also respects discourse-calendar's own **discourse_post_event_allowed_on_groups** setting
+(search `post event` under Admin → Settings) — whoever can't create calendar events at all, per that
+setting, can't use this plugin either, regardless of the settings above.
 
 ## Good to know
 

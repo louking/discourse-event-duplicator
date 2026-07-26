@@ -5,6 +5,10 @@ require "rails_helper"
 RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
   fab!(:restricted_group, :group)
   fab!(:allowed_group, :group)
+  # discourse-calendar's own allowed-group setting (`discourse_post_event_allowed_on_groups`)
+  # is an independent third authorization axis -- kept as its own group so
+  # tests can exercise it separately from `event_duplicator_allowed_groups`.
+  fab!(:calendar_group, :group)
   # refresh_auto_groups: true is required for the fabricated user to actually
   # land in the trust_level_N auto groups (Fabricate(:user) alone sets the
   # trust_level column but skips the group sync) -- without it these users
@@ -15,6 +19,7 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
   fab!(:category_only_member) { Fabricate(:user, refresh_auto_groups: true) }
   fab!(:plugin_only_member) { Fabricate(:user, refresh_auto_groups: true) }
   fab!(:non_member) { Fabricate(:user, refresh_auto_groups: true) }
+  fab!(:calendar_restricted_member) { Fabricate(:user, refresh_auto_groups: true) }
 
   fab!(:category) do
     Fabricate(:category).tap do |c|
@@ -28,11 +33,25 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
     # Default is staff-only; these specs test the AND with category
     # permissions using a dedicated group instead of granting staff.
     SiteSetting.event_duplicator_allowed_groups = allowed_group.id.to_s
+    # discourse-calendar's own `calendar_enabled` is its `enabled_site_setting`
+    # -- Plugin::Instance#add_to_class wraps every method it defines (not just
+    # `on(...)` hooks, see the DuplicationTracker spec comments) to silently
+    # return nil unless the owning plugin is enabled, so
+    # `guardian.can_create_discourse_post_event?` would otherwise always be
+    # nil/falsy here regardless of group membership.
+    SiteSetting.calendar_enabled = true
+    SiteSetting.discourse_post_event_allowed_on_groups = calendar_group.id.to_s
 
     restricted_group.add(member)
     allowed_group.add(member)
+    calendar_group.add(member)
     restricted_group.add(category_only_member)
     allowed_group.add(plugin_only_member)
+    # Passes both of this plugin's own checks (category + allowed_groups) but
+    # not discourse-calendar's own event-creation gate -- exercises the third,
+    # independent authorization axis on its own.
+    restricted_group.add(calendar_restricted_member)
+    allowed_group.add(calendar_restricted_member)
   end
 
   describe "#tagged_topics" do
@@ -58,6 +77,17 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
 
     context "when the user is in the allowed group but lacks category access" do
       before { sign_in(plugin_only_member) }
+
+      it "returns 403" do
+        get "/event-duplicator/tags/grand-prix/topics.json", params: { category_id: category.id }
+
+        expect(response.status).to eq(403)
+      end
+    end
+
+    context "when the user has category access and is in the allowed group but discourse-calendar " \
+              "doesn't let them create events" do
+      before { sign_in(calendar_restricted_member) }
 
       it "returns 403" do
         get "/event-duplicator/tags/grand-prix/topics.json", params: { category_id: category.id }
@@ -187,12 +217,10 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
     end
 
     before do
-      SiteSetting.calendar_enabled = true
+      # calendar_enabled is already set in the top-level `before`;
+      # discourse_post_event_enabled additionally gates the actual
+      # `[event]` post-sync machinery TopicDuplicator relies on here.
       SiteSetting.discourse_post_event_enabled = true
-      # discourse-calendar only lets staff (or members of its own allowed
-      # group setting) create [event] blocks; admin is the simplest way to
-      # satisfy that for the acting user in this spec.
-      member.update!(admin: true)
     end
 
     context "when authorized" do
@@ -264,6 +292,19 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
       before { sign_in(non_member) }
 
       it "returns 403" do
+        post "/event-duplicator/duplicate.json",
+             params: {
+               items: [{ topic_id: topic.id, starts_at: "2027-05-24T13:00:00Z" }],
+             }
+
+        expect(response.status).to eq(403)
+      end
+    end
+
+    context "when discourse-calendar doesn't let the user create events" do
+      before { sign_in(calendar_restricted_member) }
+
+      it "returns 403 despite passing this plugin's own category and group checks" do
         post "/event-duplicator/duplicate.json",
              params: {
                items: [{ topic_id: topic.id, starts_at: "2027-05-24T13:00:00Z" }],

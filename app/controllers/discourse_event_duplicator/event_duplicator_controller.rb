@@ -129,14 +129,28 @@ module ::DiscourseEventDuplicator
     # groups: a user may duplicate into a category only if Discourse's own
     # category permissions allow them to create a topic there AND they
     # belong to one of the groups in `event_duplicator_allowed_groups`
-    # (default: staff).
+    # (default: staff) AND discourse-calendar itself allows them to create
+    # `[event]` posts at all.
     def ensure_can_duplicate_into!(category)
       raise Discourse::InvalidAccess unless can_duplicate_into?(category)
     end
 
     def can_duplicate_into?(category)
       guardian.can_create_topic_on_category?(category) &&
-        guardian.user.in_any_groups?(SiteSetting.event_duplicator_allowed_groups_map)
+        guardian.user.in_any_groups?(SiteSetting.event_duplicator_allowed_groups_map) &&
+        can_create_calendar_event?
+    end
+
+    # Defers to discourse-calendar's own `discourse_post_event_allowed_on_groups`
+    # gate (via its Guardian extension) rather than reading that site setting
+    # ourselves -- this plugin doesn't need to know discourse-calendar's own
+    # config shape, and stays correct if discourse-calendar changes how the
+    # check works. `respond_to?` guards the (non-standard) case where
+    # discourse-calendar is genuinely absent -- see plugin.rb's warn-only
+    # handling of that -- so this doesn't newly hard-block on a check it has
+    # no way to answer.
+    def can_create_calendar_event?
+      !guardian.respond_to?(:can_create_discourse_post_event?) || guardian.can_create_discourse_post_event?
     end
 
     def resolve_strategy(param)

@@ -8,6 +8,15 @@ export function canDuplicateEvents(currentUser, siteSettings) {
     return false;
   }
 
+  // Mirrors the backend's `can_create_calendar_event?` -- discourse-calendar
+  // serializes this directly onto current_user (see e.g. its own
+  // add-events-create-topic-button.js), so this reads discourse-calendar's
+  // own answer rather than reimplementing its `discourse_post_event_allowed_on_groups`
+  // group-membership check here.
+  if (!currentUser.can_create_discourse_post_event) {
+    return false;
+  }
+
   const allowedGroupIds = (siteSettings.event_duplicator_allowed_groups || "")
     .split("|")
     .filter(Boolean)
