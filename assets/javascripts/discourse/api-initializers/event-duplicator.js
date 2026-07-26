@@ -55,7 +55,18 @@ export default apiInitializer((api) => {
       action: () => {
         const router = api.container.lookup("service:router");
         router.transitionTo("event-duplicator", {
-          queryParams: { topic_id: topic.id },
+          // See the matching comment in controllers/event-duplicator-new.js
+          // -- `transitionTo`'s queryParams merges rather than replaces, so
+          // series-mode params left over from a previous visit need
+          // clearing explicitly too, even though `model()` already
+          // prioritizes `topic_id` and so wouldn't visibly misbehave here.
+          queryParams: {
+            topic_id: topic.id,
+            category_id: null,
+            tags: null,
+            starts_after: null,
+            starts_before: null,
+          },
         });
       },
       icon: "copy",

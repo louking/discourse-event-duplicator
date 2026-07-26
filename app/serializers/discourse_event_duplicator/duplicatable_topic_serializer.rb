@@ -11,6 +11,7 @@ module ::DiscourseEventDuplicator
                :proposed_end,
                :already_duplicated,
                :existing_duplicate_topic_id,
+               :existing_duplicate_topic_url,
                :selected
 
     def tags
@@ -41,6 +42,10 @@ module ::DiscourseEventDuplicator
 
     def existing_duplicate_topic_id
       existing_duplicate && existing_duplicate["topic_id"]
+    end
+
+    def existing_duplicate_topic_url
+      existing_duplicate && "/t/#{existing_duplicate["topic_id"]}"
     end
 
     # Unchecked by default when this topic was already duplicated to the

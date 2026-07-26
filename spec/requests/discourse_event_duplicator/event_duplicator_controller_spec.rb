@@ -115,6 +115,7 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
         result = response.parsed_body["topics"].first
         expect(result["already_duplicated"]).to eq(true)
         expect(result["existing_duplicate_topic_id"]).to eq(duplicate_topic.id)
+        expect(result["existing_duplicate_topic_url"]).to eq("/t/#{duplicate_topic.id}")
         expect(result["selected"]).to eq(false)
       end
     end
@@ -151,6 +152,7 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
 
         expect(response.parsed_body["already_duplicated"]).to eq(true)
         expect(response.parsed_body["existing_duplicate_topic_id"]).to eq(duplicate_topic.id)
+        expect(response.parsed_body["existing_duplicate_topic_url"]).to eq("/t/#{duplicate_topic.id}")
       end
     end
 
@@ -253,6 +255,8 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
         json = response.parsed_body
         expect(json["duplicated"]).to be_empty
         expect(json["skipped"].first["reason"]).to eq("already_duplicated")
+        expect(json["skipped"].first["existing_duplicate_topic_id"]).to eq(duplicate_topic.id)
+        expect(json["skipped"].first["existing_duplicate_topic_url"]).to eq("/t/#{duplicate_topic.id}")
       end
     end
 

@@ -33,7 +33,11 @@ export default class EventDuplicatorController extends Controller {
   @action
   async confirmDuplication(selectedItems) {
     this.isDuplicating = true;
-    this.result = null;
+    // Not reset to null here (only replaced once the new response lands) --
+    // see the `duplicated` accumulation note below; nulling it out early
+    // would flash previously-duplicated rows back to their enabled state
+    // for the duration of this request.
+    const previouslyDuplicated = this.result?.duplicated ?? [];
 
     // `already_duplicated` topics default to unselected (see
     // DuplicatableTopicSerializer#selected) specifically so a second series
@@ -60,11 +64,22 @@ export default class EventDuplicatorController extends Controller {
 
     try {
       const response = await this.eventDuplicator.duplicate(items);
+      // `duplicated` accumulates across submissions (rather than being
+      // replaced) because the review table marks a row's checkbox disabled
+      // and excludes it from the next submission once it's in this list
+      // (see EventDuplicatorReview#confirm's `justDuplicated` guard) -- a
+      // reviewer retrying a partially-failed batch would otherwise lose the
+      // "duplicated to topic" link/disabled state on rows that already
+      // succeeded in an earlier submission. `skipped` reflects only the
+      // latest attempt, since a retry's skip reasons supersede stale ones.
       this.result = {
-        duplicated: response.duplicated.map((entry) => ({
-          ...entry,
-          title: titlesByTopicId.get(entry.topic_id),
-        })),
+        duplicated: [
+          ...previouslyDuplicated,
+          ...response.duplicated.map((entry) => ({
+            ...entry,
+            title: titlesByTopicId.get(entry.topic_id),
+          })),
+        ],
         skipped: response.skipped.map((entry) => ({
           ...entry,
           title: titlesByTopicId.get(entry.topic_id),

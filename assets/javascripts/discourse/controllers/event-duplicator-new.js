@@ -64,6 +64,14 @@ export default class EventDuplicatorNewController extends Controller {
   proceed() {
     this.router.transitionTo("event-duplicator", {
       queryParams: {
+        // `transitionTo`'s queryParams merges with whatever's already
+        // active rather than replacing it wholesale -- without explicitly
+        // nulling `topic_id` here, a `topic_id` left over from an earlier
+        // single-topic duplication (topic-admin menu button) stays in the
+        // URL, and the review route's `model()` checks `params.topic_id`
+        // first, so it silently stays in single-topic mode showing that
+        // stale topic instead of the series you just picked.
+        topic_id: null,
         category_id: this.categoryId,
         tags: this.tags.join(","),
         starts_after: this.startsAfter || null,

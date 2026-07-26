@@ -91,6 +91,7 @@ export default class EventDuplicatorReview extends Component {
               <input
                 type="checkbox"
                 checked={{item.isSelected}}
+                disabled={{item.justDuplicated}}
                 {{on "change" (fn this.toggleSelected item.topic.id)}}
               />
             </td>
@@ -102,12 +103,17 @@ export default class EventDuplicatorReview extends Component {
                 size={{item.titleSize}}
                 {{on "change" (fn this.setTitle item.topic.id)}}
               />
-              {{#if item.topic.already_duplicated}}
+              {{#if item.justDuplicated}}
                 <span class="event-duplicator-already-duplicated">
-                  {{i18n
-                    "event_duplicator.review.already_duplicated"
-                    topic_id=item.topic.existing_duplicate_topic_id
-                  }}
+                  <a href={{item.duplicateUrl}}>{{i18n
+                      "event_duplicator.review.duplicated_to_topic"
+                    }}</a>
+                </span>
+              {{else if item.topic.already_duplicated}}
+                <span class="event-duplicator-already-duplicated">
+                  <a href={{item.topic.existing_duplicate_topic_url}}>{{i18n
+                      "event_duplicator.review.duplicated_to_topic"
+                    }}</a>
                 </span>
               {{/if}}
             </td>
@@ -143,6 +149,17 @@ export default class EventDuplicatorReview extends Component {
     />
   </template>
 
+  // Maps topic id -> the new duplicate's URL, for rows that were just
+  // duplicated in this session (see `justDuplicated` below) -- built fresh
+  // from `@result` each time rather than cached, since `@result` itself is
+  // only set once (after `confirm`) and is cheap to re-scan.
+  get duplicatedUrlByTopicId() {
+    const duplicated = this.args.result?.duplicated ?? [];
+    return new Map(
+      duplicated.map((entry) => [entry.topic_id, entry.new_topic_url])
+    );
+  }
+
   // Returns a fresh array of fresh objects on every call (by design -- see
   // the class comment), so the template's `{{#each}}` is explicitly keyed
   // by `topic.id` rather than relying on Glimmer's default object-identity
@@ -153,6 +170,8 @@ export default class EventDuplicatorReview extends Component {
     // eslint-disable-next-line no-unused-expressions
     this.revision;
 
+    const duplicatedUrlByTopicId = this.duplicatedUrlByTopicId;
+
     return (this.args.topics ?? []).map((topic) => {
       const edit = this.edits.get(topic.id) ?? {};
       const isSelected = edit.isSelected ?? topic.selected ?? true;
@@ -161,6 +180,7 @@ export default class EventDuplicatorReview extends Component {
       const tbd = edit.tbd ?? true;
       const startsAt = edit.startsAt ?? topic.proposed_start;
       const title = edit.title ?? topic.title;
+      const duplicateUrl = duplicatedUrlByTopicId.get(topic.id);
 
       return {
         topic,
@@ -171,6 +191,8 @@ export default class EventDuplicatorReview extends Component {
         titleSize: titleInputSize(title),
         originalStartDate: dateOnly(topic.original_start),
         startsAtDate: dateOnly(startsAt),
+        justDuplicated: duplicateUrl !== undefined,
+        duplicateUrl,
       };
     });
   }
@@ -239,8 +261,12 @@ export default class EventDuplicatorReview extends Component {
 
   @action
   confirm() {
+    // Rows already duplicated in this session are excluded even if still
+    // marked selected -- their checkbox is disabled (non-interactive), but
+    // without this guard a later "Duplicate selected" click for other rows
+    // (e.g. retrying ones that failed) would silently re-duplicate them too.
     const selectedItems = this.items
-      .filter((item) => item.isSelected)
+      .filter((item) => item.isSelected && !item.justDuplicated)
       .map((item) => ({
         topic: item.topic,
         startsAt: item.startsAt,

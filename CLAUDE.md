@@ -134,11 +134,15 @@ and `routes.append`-vs-`draw` bugs after the fact instead of before — run it f
     already-duplicated, not from any separate UI control: a reviewer re-checking an already-flagged row's
     (unchecked-by-default) checkbox *is* the override. Before this was wired through, checking that box was
     silently a no-op — the item stayed in the submitted batch but the backend skipped it into `skipped`
-    anyway, since `force` was never sent at all.
+    anyway, since `force` was never sent at all. A skipped-as-already-duplicated entry also carries
+    `existing_duplicate_topic_url` (`"/t/#{id}"` — Discourse's bare `t/:id` route redirects to the canonical
+    slugged URL, so no extra `Topic` lookup is needed just to link to it) alongside
+    `existing_duplicate_topic_id`, so the frontend can render an actual link rather than a bare, unusable id.
 - `app/serializers/discourse_event_duplicator/duplicatable_topic_serializer.rb` — serializes a topic plus its
   `original_start`/`original_end` and `proposed_start`/`proposed_end` (read straight off
   `object.first_post.event`/`DateShifter`, no extra plumbing needed), `already_duplicated`/
-  `existing_duplicate_topic_id`, and a `selected` default (false when already duplicated). Only
+  `existing_duplicate_topic_id`/`existing_duplicate_topic_url` (same `"/t/#{id}"` shape as the `#duplicate`
+  action's skipped entries above), and a `selected` default (false when already duplicated). Only
   `original_start`/`proposed_start` are actually shown in the review UI's "Old start"/"New start" columns —
   the `*_end` attributes stay in the API response (harmless, and `#proposed_dates` returns the same fields
   directly for the single-topic case below) but nothing in the frontend reads them anymore, since the
@@ -147,10 +151,11 @@ and `routes.append`-vs-`draw` bugs after the fact instead of before — run it f
   duplicate-tracking data out of the AMS `options` hash (`options.dig(:proposed_dates, object.id)`, not
   `instance_options` — this repo is on `active_model_serializers` 0.8.x, an older API than the
   `instance_options` name suggests). The `#proposed_dates` controller action returns the same
-  `original_start`/`original_end`/`already_duplicated`/`existing_duplicate_topic_id` fields directly in its
-  JSON (it doesn't go through this serializer, since it's a single ad-hoc topic, not a collection) —
-  computed the same way (`DuplicationTracker.existing_duplicate_for`), just inlined rather than shared,
-  so any future change to how "already duplicated" is determined needs updating in both places.
+  `original_start`/`original_end`/`already_duplicated`/`existing_duplicate_topic_id`/
+  `existing_duplicate_topic_url` fields directly in its JSON (it doesn't go through this serializer, since
+  it's a single ad-hoc topic, not a collection) — computed the same way
+  (`DuplicationTracker.existing_duplicate_for`), just inlined rather than shared, so any future change to how
+  "already duplicated" is determined (or how its link is built) needs updating in both places.
 - `app/controllers/discourse_event_duplicator/pages_controller.rb` — serves the plain Discourse SPA shell
   (`raise ::ApplicationController::RenderEmpty`) for `/event-duplicator/new` and `/event-duplicator/review`.
   Required because those are Ember-only client routes: without a real backend action for them, a full page
@@ -251,17 +256,31 @@ request, since items can span categories.
   `TopicDuplicator` on the backend), and `setDateStrategy` (a `<select>` change handler that `transitionTo`s
   with a new `date_strategy` query param — the route's `queryParams` config has `refreshModel: true` for it,
   so this alone re-runs `model()` with the new strategy and recomputes every row's proposed dates).
-  `confirmDuplication` also stores the `duplicate()` response on `@tracked result` (`{ duplicated, skipped }`,
-  each entry joined with a `title` looked up from the submitted items, since the backend response itself only
-  carries topic ids) — `templates/event-duplicator.hbs` renders this as a panel below the review table once
-  set: a success list of links to each newly created duplicate, and an error list of skipped items with their
-  reason (including a link-style "already duplicated to topic #N" message, reusing the same locale string the
-  review table's own already-duplicated annotation uses). Confirming used to `await` the response and then
-  discard it entirely, so clicking "Duplicate selected" gave no feedback at all beyond the button's disabled
-  state — a real gap a user hit and reported. `result` is plain in-memory controller state, not persisted
+  `confirmDuplication` stores the `duplicate()` response on `@tracked result` (`{ duplicated, skipped }`, each
+  entry joined with a `title` looked up from the submitted items, since the backend response itself only
+  carries topic ids) — `EventDuplicatorReview` reads `result.duplicated` itself (passed down as `@result`) to
+  mark each successfully-duplicated row directly in the review table (see below), rather than this listing
+  them in a separate panel. `templates/event-duplicator.hbs` only renders a panel below the table for
+  `result.skipped` (genuine failures/edge-case skips), with a link-style "duplicated to topic" message for
+  ones skipped as already-duplicated, reusing the same locale string
+  (`event_duplicator.review.duplicated_to_topic`) and `existing_duplicate_topic_url` the review table's own
+  annotation uses. There used to also be a "Duplicated:" success list here (and confirming used to `await` the
+  response and discard it entirely before that, so clicking "Duplicate selected" gave no feedback at all) —
+  both replaced once a user asked for the in-row link/disabled-checkbox treatment instead, since a separate
+  bottom panel meant a duplicated row and a still-pending one looked identical in the table above it.
+  `confirmDuplication` accumulates `result.duplicated` across multiple submissions (`previouslyDuplicated`,
+  captured *before* the new request lands, since `result` is no longer nulled at the start of a submission —
+  doing so caused already-duplicated rows to flash back to their enabled state for the request's duration)
+  rather than replacing it — necessary because `EventDuplicatorReview#confirm` excludes already-duplicated
+  rows from the next submission's payload entirely (see below), so if a reviewer retries a batch that
+  partially failed, the earlier response's `duplicated` entries would otherwise never reappear in a later
+  response and the rows would silently lose their link/disabled state. `result.skipped` is *not* accumulated
+  the same way — each submission's skip list simply replaces the last one, since stale skip reasons from an
+  earlier attempt aren't useful once retried. `result` is plain in-memory controller state, not persisted
   anywhere (not a query param, not localStorage) — a hard page reload re-instantiates the controller and
-  re-runs `model()`, which clears it back to `null`; this is deliberate (same as any flash-style confirmation)
-  rather than a bug, since the underlying duplicate topic itself isn't lost, only the confirmation banner.
+  re-runs `model()`, which clears it back to `null`, losing the disabled/link row state along with it; this is
+  deliberate (same as any flash-style confirmation) rather than a bug, since the underlying duplicate topic
+  itself isn't lost, only this session's confirmation state.
 - `components/event-duplicator-review.gjs` — the review/edit step: an editable **Topic** title (pre-filled
   from `topic.title`, plain `<input type="text">`) alongside the start date (**Old start**, read-only, from
   `topic.original_start`; **New start**, editable) — there's no end-date column, since the backend always
@@ -284,7 +303,17 @@ request, since items can span categories.
   rerun. Header checkboxes in the selection and Date TBD columns select/clear that whole column
   (`allSelected`/`allTbd` getters, `toggleAllSelected`/`toggleAllTbd` actions) rather than only per-row.
   `isSelected` defaults from each topic's `selected` flag from the backend — false for topics
-  `DuplicationTracker` already flagged as duplicated. **Single-file `.gjs` (class + colocated `<template>`),
+  `DuplicationTracker` already flagged as duplicated. Also accepts `@result` (the controller's
+  `{ duplicated, skipped }` state, see above) purely to compute `justDuplicated`/`duplicateUrl` per row —
+  `duplicatedUrlByTopicId` is a `Map` built fresh from `@result.duplicated` on every `items` access (topic id
+  → `new_topic_url`), and a row whose topic id is in that map renders the same "duplicated to topic" link
+  used for a topic that arrived *already* duplicated (`item.topic.already_duplicated`, checked first since
+  it's the more current of the two), and has its selection checkbox `disabled`. `confirm()` additionally
+  filters out any `justDuplicated` row even if `isSelected` is still (necessarily) `true` on it — the checkbox
+  being disabled only stops the reviewer from *un*checking it by hand, it doesn't stop `items` from still
+  reporting it selected, so without this explicit filter a later "Duplicate selected" click (e.g. retrying
+  other rows that failed) would silently resubmit and re-duplicate an already-completed row. **Single-file
+  `.gjs` (class + colocated `<template>`),
   not a separate `.js` + `.hbs` pair** —
   this plugin's dev-mode JS pipeline (rolldown-based, distinct from the classic Ember CLI build) does not
   support the classic "same-named `.hbs` next to the `.js` in `components/`" colocation convention some

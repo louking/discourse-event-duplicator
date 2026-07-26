@@ -68,6 +68,7 @@ module ::DiscourseEventDuplicator
                proposed_end: proposed[:ends_at],
                already_duplicated: existing.present?,
                existing_duplicate_topic_id: existing && existing["topic_id"],
+               existing_duplicate_topic_url: existing && "/t/#{existing["topic_id"]}",
              }
     end
 
@@ -98,6 +99,7 @@ module ::DiscourseEventDuplicator
             topic_id: topic.id,
             reason: "already_duplicated",
             existing_duplicate_topic_id: existing["topic_id"],
+            existing_duplicate_topic_url: "/t/#{existing["topic_id"]}",
           }
           next
         end

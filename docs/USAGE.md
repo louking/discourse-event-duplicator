@@ -73,15 +73,18 @@ Each row is one event topic that will be duplicated if you leave it checked.
 
 If a topic was already duplicated to the same target year in an earlier run — whether from re-running a
 series (this matters if a topic carries more than one series tag and you've run the duplicator once per
-tag) or from opening the single-topic "Duplicate event" flow again later — it shows an "Already duplicated
-to topic #…" note and starts unchecked, so re-running doesn't accidentally create a second copy. Check the
-box yourself if you genuinely want a second copy anyway — checking it back on is treated as deliberate
-override and a new duplicate gets created even though one already exists.
+tag) or from opening the single-topic "Duplicate event" flow again later — it shows a "duplicated to topic"
+link straight to the existing duplicate and starts unchecked, so re-running doesn't accidentally create a
+second copy. Check the box yourself if you genuinely want a second copy anyway — checking it back on is
+treated as deliberate override and a new duplicate gets created even though one already exists.
 
-Click **Duplicate selected** to create the checked topics. A panel appears below the button once it's done:
-a link to each newly created duplicate, and, for anything that couldn't be duplicated, the reason why. This
-panel is just page state — it clears if you reload the page, but the topics it linked to aren't affected by
-that.
+Click **Duplicate selected** to create the checked topics. Each row that's successfully duplicated updates
+right there in the table: its checkbox becomes disabled (it's done — nothing further to select) and a
+"duplicated to topic" link appears next to its title, straight to the new topic, the same way an
+already-duplicated row is flagged. If you retry after some rows failed, rows that succeeded stay flagged
+this way rather than being resubmitted. Anything that couldn't be duplicated shows up in a panel below the
+button instead, with the reason why. This is just page state — it clears if you reload the page, but the
+topics it linked to (or created) aren't affected by that.
 
 ### Date rule
 

@@ -19,11 +19,10 @@ en:
         new_start: "New start"
         tbd: "Date TBD"
         date_strategy: "Date rule"
-        already_duplicated: "Already duplicated to topic #%{topic_id}"
         no_topics: "No matching topics found."
         confirm: "Duplicate selected"
+        duplicated_to_topic: "duplicated to topic"
         result:
-          duplicated_heading: "Duplicated:"
           skipped_heading: "Skipped:"
       date_strategy:
         calendar_date: "Same calendar date"
