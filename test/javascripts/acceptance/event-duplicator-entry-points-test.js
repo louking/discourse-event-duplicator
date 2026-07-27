@@ -23,7 +23,7 @@ const READ_ONLY_CATEGORY = {
 
 function withTopicPage(
   needs,
-  { id, category, proposedDates, hasEvent = true }
+  { id, category, proposedDates, hasEvent = true, moderationCapable = true }
 ) {
   needs.pretender((server, helper) => {
     server.get(`/t/${id}.json`, () => {
@@ -32,6 +32,15 @@ function withTopicPage(
       topic.slug = "grand-prix";
       topic.category_id = category.id;
       topic.event_duplicator_has_event = hasEvent;
+      // The shared fixture hardcodes these to true regardless of the
+      // simulated user. Discourse core's own TopicAdminMenu#showAdminButton
+      // gates the entire wrench menu (including any button this plugin adds
+      // via addTopicAdminMenuButton) on canManageTopic (staff/TL4) or these
+      // moderator-only flags -- a real 4th permission on top of this
+      // plugin's own three checks. See GitHub issue #11.
+      topic.details.can_close_topic = moderationCapable;
+      topic.details.can_archive_topic = moderationCapable;
+      topic.details.can_split_merge_topic = moderationCapable;
       return helper.response(topic);
     });
 
@@ -216,6 +225,48 @@ acceptance(
       await click(".toggle-admin-menu");
 
       assert.dom(".event-duplicator-duplicate-topic").doesNotExist();
+    });
+  }
+);
+
+acceptance(
+  "Event Duplicator - entry points (user lacks category-moderator status)",
+  function (needs) {
+    // Deliberately not staff/TL4 -- `needs.user()` merges onto a fixture
+    // (session-fixtures.js) that otherwise defaults to admin/moderator true
+    // and trust_level 4, which would make Discourse core's own
+    // TopicAdminMenu#showAdminButton pass regardless of the `details` flags
+    // below and mask the very gap this test exists to cover.
+    needs.user({
+      admin: false,
+      moderator: false,
+      trust_level: 1,
+      can_create_discourse_post_event: true,
+      groups: [{ id: 20, name: "race-organizers" }],
+    });
+    needs.settings({
+      event_duplicator_enabled: true,
+      event_duplicator_allowed_groups: "20",
+    });
+    needs.site({ categories: [ALLOWED_CATEGORY] });
+    withTopicPage(needs, {
+      id: 9006,
+      category: ALLOWED_CATEGORY,
+      moderationCapable: false,
+    });
+
+    // Regression coverage for GitHub issue #11: this plugin's own three
+    // checks (category permission, event_duplicator_allowed_groups,
+    // discourse-calendar's post-event permission) all pass here, but the
+    // topic-admin wrench menu itself is a Discourse core component
+    // (TopicAdminMenu) that additionally requires category-moderator status
+    // (staff/TL4/category moderator group) before it renders at all --
+    // independent of anything this plugin checks. Without it, there's no
+    // wrench trigger to click at all, not just a missing button inside it.
+    test("the wrench menu itself does not render, so the button never has anywhere to appear", async function (assert) {
+      await visit("/t/grand-prix/9006");
+
+      assert.dom(".toggle-admin-menu").doesNotExist();
     });
   }
 );

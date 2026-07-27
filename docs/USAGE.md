@@ -30,6 +30,9 @@ Three things all have to be true for a given category:
 If any of those isn't true, you won't see the "Event Duplicator" link in the sidebar or the "Duplicate
 event" button on a topic — the controls simply don't appear, rather than showing and then failing.
 
+The single-topic "Duplicate event" button has one more requirement on top of these three, which the
+series-duplication sidebar link doesn't share — see "Duplicating a single topic" below.
+
 ## Duplicating a whole series
 
 Use this when you have several related event topics — e.g. every race in a season, each tagged
@@ -49,6 +52,14 @@ Use this when you have several related event topics — e.g. every race in a sea
 
 Open the topic you want to duplicate, use its admin/wrench menu, and choose **Duplicate event**. This skips
 the picker step and takes you straight to the review page for that one topic.
+
+**This entry point needs one more thing beyond the three conditions above: you must also have
+moderator-level permission on that topic's category** (staff, trust level 4, or membership in that
+category's assigned moderator group). The wrench/admin menu itself is a Discourse feature this plugin adds
+a button into, not something this plugin renders on its own — Discourse only shows that menu at all to users
+who can moderate the topic in some way (close/archive/split, for example), regardless of whether they'd
+otherwise be allowed to duplicate events. If you meet the three conditions above but not this one, you'll
+need to use the series-duplication picker (sidebar link) instead, which doesn't have this extra requirement.
 
 The button only appears on topics that actually have a discourse-calendar event — it won't show on an
 ordinary topic, even if you otherwise meet all three conditions above.
