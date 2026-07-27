@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Discourse: Start",
+      "type": "shell",
+      "command": "${workspaceFolder}/.vscode/discourse-start.sh",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "close": false
+      }
+    },
+    {
+      "label": "Discourse: Stop",
+      "type": "shell",
+      "command": "${workspaceFolder}/.vscode/discourse-stop.sh",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "close": false
+      }
+    },
+    {
+      "label": "Discourse: Restart",
+      "dependsOrder": "sequence",
+      "dependsOn": ["Discourse: Stop", "Discourse: Start"],
+      "problemMatcher": []
+    }
+  ]
+}
