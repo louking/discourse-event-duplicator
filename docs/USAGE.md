@@ -92,9 +92,11 @@ Each row is one event topic that will be duplicated if you leave it checked.
 - **Date TBD** (or whatever text your site has set for the `event_duplicator_tbd_annotation` setting — the
   column header shows that setting's own text, e.g. "(TENTATIVE)" if you've changed it, not a fixed label) —
   checked by default, since a shifted date is a *proposal*, not a confirmed one. When checked, the
-  duplicate's title and event name get that annotation appended so it's obviously provisional until someone
-  confirms the real date and unchecks it on a future edit. Uncheck it here if you already know the date is
-  correct. If `event_duplicator_tbd_annotation` is set blank, this whole column disappears — there's nothing
+  duplicate's title and event name get that annotation appended (with a space inserted before it
+  automatically — don't add a leading space when setting `event_duplicator_tbd_annotation` yourself, since
+  Discourse strips it on save anyway) so it's obviously provisional until someone confirms the real date and
+  unchecks it on a future edit. Uncheck it here if you already know the date is correct. If
+  `event_duplicator_tbd_annotation` is set blank, this whole column disappears — there's nothing
   useful for the checkbox to do once the annotation itself is disabled.
 - The checkbox in the first column controls whether that row gets duplicated at all. The checkboxes in the
   header of that column and the Date TBD column (when shown) select or clear the whole column at once.
@@ -141,7 +143,9 @@ These are configured under **Admin → Settings**, searching for `event duplicat
 - **event_duplicator_default_date_strategy** — the default date rule (see the table above) used when
   someone hasn't changed the dropdown.
 - **event_duplicator_tbd_annotation** — the text appended to a duplicate's title/event name when it's
-  flagged "date TBD" (default `" (date TBD)"`). The review page's Date TBD column header shows this same
+  flagged "date TBD" (default `"(date TBD)"`), with a separating space inserted automatically — don't add
+  your own leading space here, since Discourse strips any leading/trailing whitespace from a setting's value
+  when you save it, regardless of what you typed. The review page's Date TBD column header shows this same
   text, and the whole column disappears if you set it blank, since that also disables the annotation
   feature entirely.
 

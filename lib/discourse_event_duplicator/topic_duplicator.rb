@@ -63,13 +63,21 @@ module ::DiscourseEventDuplicator
 
     # Race events often don't have a settled date yet; marking a duplicate
     # as such appends (or, if unmarked, strips a stale) annotation to the
-    # title and event name, rather than leaving no way to flag it.
+    # title and event name, rather than leaving no way to flag it. The
+    # separating space is inserted here rather than expected as part of the
+    # site setting's own value: Discourse core's SiteSetting::Update service
+    # unconditionally `.strip`s every setting value on save
+    # (app/services/site_setting/update.rb), so a setting value entered as
+    # e.g. " (TBD)" is persisted as "(TBD)" with the leading space silently
+    # gone -- any leading/trailing whitespace baked into the setting itself
+    # can't survive being saved through the admin UI. See GitHub issue #17.
     def annotate(text)
       annotation = SiteSetting.event_duplicator_tbd_annotation
       return text if annotation.blank?
 
-      base = text.delete_suffix(annotation)
-      @tbd ? "#{base}#{annotation}" : base
+      suffix = " #{annotation}"
+      base = text.delete_suffix(suffix)
+      @tbd ? "#{base}#{suffix}" : base
     end
 
     def event_raw

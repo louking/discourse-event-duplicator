@@ -152,6 +152,20 @@ RSpec.describe DiscourseEventDuplicator::TopicDuplicator do
 
       expect(new_topic.title).to eq("Monaco Grand Prix (date TBD)")
     end
+
+    it "inserts its own separating space rather than requiring one in the site setting" do
+      # Discourse's SiteSetting::Update service strips leading/trailing
+      # whitespace from every setting value on save
+      # (app/services/site_setting/update.rb), so a real admin-set value can
+      # never actually have a leading space here -- exercised without one to
+      # match what's really stored, rather than what an admin might type.
+      SiteSetting.event_duplicator_tbd_annotation = "(TENTATIVE)"
+
+      new_topic =
+        described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at, tbd: true).call
+
+      expect(new_topic.title).to eq("Monaco Grand Prix (TENTATIVE)")
+    end
   end
 
   describe "tbd: false (default)" do

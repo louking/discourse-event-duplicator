@@ -16,5 +16,5 @@ plugins:
       - calendar_date
       - nth_weekday_of_month
   event_duplicator_tbd_annotation:
-    default: " (date TBD)"
+    default: "(date TBD)"
     client: true

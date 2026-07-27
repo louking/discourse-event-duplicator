@@ -109,8 +109,15 @@ plugin:qunit[discourse-event-duplicator]` from `~/discourse` separately before p
   (`starts_at + (source_event.ends_at - source_event.starts_at)`) via `#effective_ends_at`, so an edited start
   date can't drift out of sync with an independently-edited (and now nonexistent) end date. Accepts `tbd:` —
   race events often don't have a settled date yet, so `tbd: true` appends (and `tbd: false` strips a stale)
-  the `event_duplicator_tbd_annotation` site setting's text (default `" (date TBD)"`) on both the new topic's
-  title and the event's `name`. Accepts an optional `title:` override (`#effective_title`) — reviewers can
+  the `event_duplicator_tbd_annotation` site setting's text (default `"(date TBD)"`) on both the new topic's
+  title and the event's `name`. **`#annotate` inserts its own separating space (`" #{annotation}"`) rather
+  than expecting the setting's own value to include a leading space** — found live (#17: a user set the
+  setting to `" (TBD)"` and the resulting topic title had no space before the parenthetical, i.e.
+  `"Title(TBD)"`), traced to Discourse core's `SiteSetting::Update` service unconditionally `.strip`ing
+  every setting's value on save (`app/services/site_setting/update.rb`, `setting[:value].to_s.strip`)
+  regardless of type or plugin — any leading/trailing whitespace typed into the admin UI for *any* site
+  setting is silently discarded before it's persisted, not something this plugin can opt out of. Accepts an
+  optional `title:` override (`#effective_title`) — reviewers can
   rename the duplicate rather than always reusing the source topic's title verbatim (e.g. to drop a baked-in
   year); when given, it's used for *both* the new topic's title and, since the two are normally kept in sync,
   the event's own `name` too (still passed through `#annotate`, so `tbd:` layers on top of an override rather
