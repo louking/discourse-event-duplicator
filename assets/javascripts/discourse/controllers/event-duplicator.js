@@ -23,6 +23,29 @@ export default class EventDuplicatorController extends Controller {
     return (this.model?.tags ?? []).join(", ");
   }
 
+  // The Date rule <select>'s selected option is driven by these rather than
+  // a `value={{this.model.dateStrategy}}` binding on the <select> itself --
+  // that was tried first and is the actual cause of GitHub issue #13
+  // ("review form" showing the wrong date while the dropdown looked right).
+  // Glimmer sets `value` on a <select> as a DOM property (confirmed against
+  // its `normalizeProperty`: "value" is an own property of a select
+  // element, so it isn't forced to plain-attribute), but it does so when the
+  // <select>'s opening tag is flushed, before its <option> children exist in
+  // the DOM yet -- so the assignment has no effect once those options are
+  // appended, and the browser silently falls back to selecting the first
+  // <option> ("Same calendar date") regardless of the real active strategy.
+  // Setting `selected` directly on each <option> sidesteps the ordering
+  // problem entirely, since HTMLOptionElement#selected only marks that
+  // option's own internal selectedness flag and doesn't depend on the
+  // <select> parent existing yet.
+  get isCalendarDateStrategy() {
+    return this.model?.dateStrategy === "calendar_date";
+  }
+
+  get isNthWeekdayOfMonthStrategy() {
+    return this.model?.dateStrategy === "nth_weekday_of_month";
+  }
+
   @action
   setDateStrategy(event) {
     this.router.transitionTo("event-duplicator", {

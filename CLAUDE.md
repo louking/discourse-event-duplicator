@@ -253,7 +253,19 @@ request, since items can span categories.
     `event_starts_at` topic_view attribute wasn't reused for this check because it's gated behind the
     unrelated `display_post_event_date_on_topic_title` site setting, so it can be absent even when the topic
     does have an event; this plugin's own attribute is computed directly off
-    `topic.first_post&.event.present?` instead, with no such dependency.
+    `topic.first_post&.event.present?` instead, with no such dependency. Its `transitionTo` explicitly nulls
+    out every series-mode-only query param (`category_id`/`tags`/`starts_after`/`starts_before`) left over
+    from a previous visit **and, since GitHub issue #13, `date_strategy` too** — `date_strategy` isn't
+    series-mode-only (single-topic mode uses it as well) but was originally left out of this list on the
+    assumption that a fresh `topic_id` would make any stale value harmless. It isn't: the review route's
+    controller has `queryParams` (see `controllers/event-duplicator.js` below), so it's a singleton whose
+    query-param state persists across route visits for the lifetime of the app boot, same as the other
+    params this comment already existed to explain — a date rule picked during an earlier review (series or
+    single-topic) silently carried over into the next single-topic duplication and was used to compute *its*
+    proposed date instead of the intended default, with nothing in the UI revealing the mismatch (see the
+    `<select>` binding bug below, which independently masked this by always displaying the first option
+    regardless of the real active strategy). Regression-tested in
+    `acceptance/event-duplicator-date-strategy-test.js`.
 - `routes/event-duplicator-new.js` / `controllers/event-duplicator-new.js` /
   `templates/event-duplicator-new.hbs` — the picker page: category (`<CategoryChooser>`) + multi-tag OR
   select (`<TagChooser>`) + optional, clearable source-event date range (plain `<input type="date">` +
@@ -307,6 +319,23 @@ request, since items can span categories.
   `TopicDuplicator` on the backend), and `setDateStrategy` (a `<select>` change handler that `transitionTo`s
   with a new `date_strategy` query param — the route's `queryParams` config has `refreshModel: true` for it,
   so this alone re-runs `model()` with the new strategy and recomputes every row's proposed dates).
+  `isCalendarDateStrategy`/`isNthWeekdayOfMonthStrategy` back the Date rule `<select>`'s two `<option>`s'
+  `selected` attribute in `templates/event-duplicator.hbs` — **not** a `value={{this.model.dateStrategy}}`
+  binding on the `<select>` element itself, which was tried first and is the real bug behind GitHub issue #13
+  ("duplicated single event, saw wrong date in review form"). Confirmed against Glimmer's `normalizeProperty`
+  (`@glimmer/runtime`): `value` on a `<select>` qualifies as a settable DOM property (not forced to a plain
+  attribute, unlike e.g. `form`), so it isn't a "silently becomes `setAttribute`, never worked" bug — but
+  Glimmer applies it while the `<select>`'s own opening tag is flushed, which happens *before* its `<option>`
+  children are appended as block content. Setting `select.value` before any `<option>` exists to match has no
+  effect once those options do get appended a moment later, and per the HTML spec the browser then falls back
+  to selecting the first `<option>` ("Same calendar date") — so the dropdown displayed the default strategy
+  as selected regardless of the real active one, even when a stale `date_strategy` query param (see the
+  `api-initializers/event-duplicator.js` bug above, also #13) had it actually compute proposed dates under a
+  completely different strategy. Setting `selected` directly on each `<option>` sidesteps the ordering
+  problem: `HTMLOptionElement#selected` only marks that option's own internal selectedness flag and takes
+  effect once attached, independent of when its parent `<select>` exists. Regression-tested in
+  `acceptance/event-duplicator-date-strategy-test.js`, which asserts the rendered `<select>`'s actual
+  DOM `value` (not just the underlying model state, which alone wouldn't have caught this).
   `confirmDuplication` stores the `duplicate()` response on `@tracked result` (`{ duplicated, skipped }`, each
   entry joined with a `title` looked up from the submitted items, since the backend response itself only
   carries topic ids) — `EventDuplicatorReview` reads `result.duplicated` itself (passed down as `@result`) to
@@ -406,6 +435,16 @@ caught by live manual testing:
   `acceptance(...)` block's pretender setup must go through one `needs.pretender(...)` call, not several** —
   calling it twice throws "There is already a pretender callback with module name (...)", since the callback
   registry is keyed by the acceptance block's name, not accumulated per-call.
+- `acceptance/event-duplicator-date-strategy-test.js` — regression coverage for GitHub issue #13 (see
+  `controllers/event-duplicator.js` and `api-initializers/event-duplicator.js` above for the two bugs this
+  covers). Asserts on the rendered `<select>`'s actual DOM `.value` (`assert.dom(...).hasValue(...)`, not
+  just `model.dateStrategy`) — a test that only checked the model/controller state would have kept passing
+  even with the original `value={{}}`-on-`<select>` bug in place, since that bug was purely about what the
+  DOM ended up showing, not the underlying data. Also exercises the actual stale-query-param mechanism (visit
+  the review route with a non-default `date_strategy` first, *then* navigate to a topic and click the
+  topic-admin button) rather than only asserting the param is absent from a fresh session, which the
+  pre-existing "with series-mode params cleared" test in `entry-points-test.js` does and would pass
+  regardless of whether the leftover-state bug existed at all.
 
 Run via `bin/rake plugin:qunit[discourse-event-duplicator]` from the Discourse core checkout — see "QUnit
 tests" under Commands above for the Chrome/sandbox setup this needs. `bin/local-ci` lints `test/javascripts`

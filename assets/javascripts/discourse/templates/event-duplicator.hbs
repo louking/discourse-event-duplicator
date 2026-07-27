@@ -5,16 +5,15 @@
 
   <div class="control-group event-duplicator-date-strategy">
     <label>{{i18n "event_duplicator.review.date_strategy"}}</label>
-    <select
-      value={{this.model.dateStrategy}}
-      {{on "change" this.setDateStrategy}}
-    >
-      <option value="calendar_date">{{i18n
-          "event_duplicator.date_strategy.calendar_date"
-        }}</option>
-      <option value="nth_weekday_of_month">{{i18n
-          "event_duplicator.date_strategy.nth_weekday_of_month"
-        }}</option>
+    <select {{on "change" this.setDateStrategy}}>
+      <option
+        value="calendar_date"
+        selected={{this.isCalendarDateStrategy}}
+      >{{i18n "event_duplicator.date_strategy.calendar_date"}}</option>
+      <option
+        value="nth_weekday_of_month"
+        selected={{this.isNthWeekdayOfMonthStrategy}}
+      >{{i18n "event_duplicator.date_strategy.nth_weekday_of_month"}}</option>
     </select>
   </div>
 
