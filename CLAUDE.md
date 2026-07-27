@@ -360,7 +360,21 @@ request, since items can span categories.
   anywhere (not a query param, not localStorage) — a hard page reload re-instantiates the controller and
   re-runs `model()`, which clears it back to `null`, losing the disabled/link row state along with it; this is
   deliberate (same as any flash-style confirmation) rather than a bug, since the underlying duplicate topic
-  itself isn't lost, only this session's confirmation state.
+  itself isn't lost, only this session's confirmation state. **`routes/event-duplicator.js`'s `setupController`
+  also nulls `result` on every fresh model load**, not just a hard reload — added for GitHub issue #16 (a
+  regression: after deleting a just-duplicated topic, /review kept showing it as duplicated). Because
+  `controller:event-duplicator` is a singleton, `result` used to survive a plain SPA re-entry into the route
+  (navigate to the duplicate topic to delete it, then back) too, and outlived the duplicate topic it pointed
+  at — deleting that topic runs `DuplicationTracker#forget!` (see plugin.rb's `:topic_trashed` hook) and a
+  fresh `model()` fetch does return the now-accurate `already_duplicated: false`, but the stale `result` still
+  named the deleted topic and the row kept rendering "duplicated to topic" regardless. Nulling `result`
+  whenever `setupController` runs (any real re-entry, or a `date_strategy` change via `refreshModel`) is safe
+  because at that point the fresh `already_duplicated`/`existing_duplicate_topic_url` on `@topics` is already
+  the authoritative replacement for what `result` was bridging — `result` only needs to cover the gap between
+  confirming a batch and the *next* actual refetch. No prior test exercised "a topic this session just
+  duplicated, then a fresh model load reporting it no longer duplicated" — every existing case had `result`
+  and the fresh `already_duplicated` flag agreeing, so a stale-forever `result` looked correct. Regression
+  test: `acceptance/event-duplicator-stale-result-test.js`.
 - `components/event-duplicator-review.gjs` — the review/edit step: an editable **Topic** title (pre-filled
   from `topic.title`, plain `<input type="text">`) alongside the start date (**Old start**, read-only, from
   `topic.original_start`; **New start**, editable) — there's no end-date column, since the backend always
@@ -387,8 +401,13 @@ request, since items can span categories.
   `{ duplicated, skipped }` state, see above) purely to compute `justDuplicated`/`duplicateUrl` per row —
   `duplicatedUrlByTopicId` is a `Map` built fresh from `@result.duplicated` on every `items` access (topic id
   → `new_topic_url`), and a row whose topic id is in that map renders the same "duplicated to topic" link
-  used for a topic that arrived *already* duplicated (`item.topic.already_duplicated`, checked first since
-  it's the more current of the two), and has its selection checkbox `disabled`. `confirm()` additionally
+  used for a topic that arrived *already* duplicated (`item.topic.already_duplicated`) — the template checks
+  `justDuplicated` first, falling back to `item.topic.already_duplicated`, but only `justDuplicated`
+  additionally disables the selection checkbox (see the "already duplicated... not disabled" vs "just
+  duplicated... disabled" cases in `event-duplicator-review-test.gjs`). The two are no longer expected to
+  disagree in practice: the route now nulls `@result` on every fresh model load (see `setupController` on
+  `routes/event-duplicator.js`, added for issue #16), so a stale `justDuplicated` can't outlive the model
+  fetch that would otherwise correct it. `confirm()` additionally
   filters out any `justDuplicated` row even if `isSelected` is still (necessarily) `true` on it — the checkbox
   being disabled only stops the reviewer from *un*checking it by hand, it doesn't stop `items` from still
   reporting it selected, so without this explicit filter a later "Duplicate selected" click (e.g. retrying

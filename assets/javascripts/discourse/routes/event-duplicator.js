@@ -26,6 +26,26 @@ export default class EventDuplicatorRoute extends Route {
     return this.modelForTaggedSeries(params, dateStrategy);
   }
 
+  // A fresh model fetch means `topics` now carries up-to-date
+  // `already_duplicated`/`existing_duplicate_topic_url` straight from
+  // DuplicationTracker -- the authoritative source. The controller's
+  // `result` (the previous "duplicated to topic" confirmation state, see
+  // `confirmDuplication`) is only meant to bridge the gap between
+  // confirming a batch and the next time the model is actually refetched;
+  // holding onto it past that point makes it actively wrong rather than
+  // just stale. Concretely: duplicate a topic, delete that duplicate
+  // (freeing the source back up via DuplicationTracker#forget!), then
+  // revisit this route (or flip the date-rule dropdown, which
+  // `refreshModel`s the same way) -- without this reset, `result.duplicated`
+  // still names the deleted topic and the review row kept showing
+  // "duplicated to topic" even though the fresh `already_duplicated: false`
+  // said otherwise, since the controller is a singleton whose `result`
+  // survives across route re-entries. See GitHub issue #16.
+  setupController(controller, model) {
+    super.setupController(controller, model);
+    controller.result = null;
+  }
+
   async modelForSingleTopic(params, dateStrategy) {
     const proposed = await this.eventDuplicator.proposedDates(
       params.topic_id,
