@@ -399,9 +399,19 @@ request, since items can span categories.
   support the classic "same-named `.hbs` next to the `.js` in `components/`" colocation convention some
   guides describe as the fix for the `component-template-resolving` deprecation; that arrangement compiled
   without error here but the component silently rendered nothing. `.gjs` with an inline `<template>` is the
-  form that actually works. The two top-level route templates (`templates/event-duplicator.hbs`,
-  `templates/event-duplicator-new.hbs`) are still classic `.hbs` and log a (non-blocking) `.hbs` extension
-  deprecation warning on boot — only worth converting to `.gjs` if that warning becomes an enforced error.
+  form that actually works. The two top-level route templates (`templates/event-duplicator.gjs`,
+  `templates/event-duplicator-new.gjs`) are also `.gjs` now, converted once the `.hbs` extension deprecation
+  warning showed up in-browser — a plain `export default <template>...</template>` with no wrapper class,
+  referencing `@controller.foo`/`@model` directly rather than `this.foo` (confirmed against real converted
+  route templates already in Discourse core, e.g. `app/templates/email-login.gjs` and
+  `app/templates/group/manage/tags.gjs` — Ember's route-template rendering auto-supplies `@controller`/
+  `@model` to a strict-mode template-only component the same way the `ember-route-template` package's
+  `RouteTemplate()` wrapper does explicitly; no need for that wrapper, or a backing class, when the template
+  itself holds no state). Needed matching import swaps: `{{on ...}}` → explicit `import { on } from
+  "@ember/modifier"`, `{{i18n ...}}` → `import { i18n } from "discourse-i18n"`, `{{not ...}}` → `import { not }
+  from "discourse/truth-helpers"`, and `<CategoryChooser>`/`<TagChooser>` → explicit imports from
+  `discourse/select-kit/components/category-chooser` / `tag-chooser` — none of these are implicitly in scope
+  in strict-mode `.gjs` the way they were as classic-mode Handlebars globals.
 
 **Frontend tests (`test/javascripts/`)** — added to close the "frontend has no automated coverage" gap
 tracked in GitHub issue #2 (section 12), after several real bugs documented throughout this file (the
