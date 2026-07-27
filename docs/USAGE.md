@@ -61,6 +61,18 @@ who can moderate the topic in some way (close/archive/split, for example), regar
 otherwise be allowed to duplicate events. If you meet the three conditions above but not this one, you'll
 need to use the series-duplication picker (sidebar link) instead, which doesn't have this extra requirement.
 
+Getting the "category's assigned moderator group" route working needs two separate admin steps, and it's
+easy to do only one and see no effect with no explanation why:
+
+1. Turn on the **enable_category_group_moderation** site setting (site-wide, off by default).
+2. On the category itself (Category Settings → Moderation), assign the group under "Additional group(s)
+   that can moderate content in this category."
+
+Both are required — assigning the group to the category does nothing while the site setting is off, since
+Discourse's own category-group-moderator check short-circuits to `false` whenever that setting is disabled,
+regardless of what's assigned on the category. Staff and trust-level-4 users aren't affected by either of
+these — they already pass the moderator-level check unconditionally.
+
 The button only appears on topics that actually have a discourse-calendar event — it won't show on an
 ordinary topic, even if you otherwise meet all three conditions above.
 
