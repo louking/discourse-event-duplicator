@@ -3,6 +3,7 @@ import { tracked } from "@glimmer/tracking";
 import { action } from "@ember/object";
 import { fn } from "@ember/helper";
 import { on } from "@ember/modifier";
+import { service } from "@ember/service";
 import DButton from "discourse/ui-kit/d-button";
 import { i18n } from "discourse-i18n";
 
@@ -56,6 +57,8 @@ function titleInputSize(title) {
 // (non-tracked) Map; `revision` is bumped after every mutation so the
 // `items` getter -- which reads `revision` -- knows to recompute.
 export default class EventDuplicatorReview extends Component {
+  @service siteSettings;
+
   @tracked revision = 0;
 
   edits = new Map();
@@ -74,14 +77,16 @@ export default class EventDuplicatorReview extends Component {
           <th>{{i18n "event_duplicator.review.topic"}}</th>
           <th>{{i18n "event_duplicator.review.old_start"}}</th>
           <th>{{i18n "event_duplicator.review.new_start"}}</th>
-          <th>
-            <input
-              type="checkbox"
-              checked={{this.allTbd}}
-              {{on "change" this.toggleAllTbd}}
-            />
-            {{i18n "event_duplicator.review.tbd"}}
-          </th>
+          {{#if this.showTbdColumn}}
+            <th>
+              <input
+                type="checkbox"
+                checked={{this.allTbd}}
+                {{on "change" this.toggleAllTbd}}
+              />
+              {{this.tbdAnnotationText}}
+            </th>
+          {{/if}}
         </tr>
       </thead>
       <tbody>
@@ -125,17 +130,21 @@ export default class EventDuplicatorReview extends Component {
                 {{on "change" (fn this.setStartsAt item.topic.id)}}
               />
             </td>
-            <td>
-              <input
-                type="checkbox"
-                checked={{item.tbd}}
-                {{on "change" (fn this.toggleTbd item.topic.id)}}
-              />
-            </td>
+            {{#if this.showTbdColumn}}
+              <td>
+                <input
+                  type="checkbox"
+                  checked={{item.tbd}}
+                  {{on "change" (fn this.toggleTbd item.topic.id)}}
+                />
+              </td>
+            {{/if}}
           </tr>
         {{else}}
           <tr>
-            <td colspan="5">{{i18n "event_duplicator.review.no_topics"}}</td>
+            <td colspan={{this.columnCount}}>{{i18n
+                "event_duplicator.review.no_topics"
+              }}</td>
           </tr>
         {{/each}}
       </tbody>
@@ -148,6 +157,23 @@ export default class EventDuplicatorReview extends Component {
       @label="event_duplicator.review.confirm"
     />
   </template>
+
+  // The TBD column's header shows the site setting's own annotation text
+  // (rather than a generic "Date TBD" label) so a reviewer can see exactly
+  // what checking it will append -- and the whole column is hidden when the
+  // setting is blank, since TopicDuplicator#annotate is then a no-op and the
+  // checkbox wouldn't do anything. See GitHub issue #15.
+  get tbdAnnotationText() {
+    return (this.siteSettings.event_duplicator_tbd_annotation || "").trim();
+  }
+
+  get showTbdColumn() {
+    return this.tbdAnnotationText.length > 0;
+  }
+
+  get columnCount() {
+    return this.showTbdColumn ? 5 : 4;
+  }
 
   // Maps topic id -> the new duplicate's URL, for rows that were just
   // duplicated in this session (see `justDuplicated` below) -- built fresh

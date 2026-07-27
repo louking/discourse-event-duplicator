@@ -137,7 +137,43 @@ module("Component | event-duplicator-review", function (hooks) {
     assert.true(selectionCheckboxes().every((box) => !box.checked));
   });
 
+  test("the TBD column header shows the event_duplicator_tbd_annotation site setting's own text", async function (assert) {
+    this.siteSettings.event_duplicator_tbd_annotation = " (TENTATIVE)";
+    this.topics = [topic()];
+
+    await render(
+      <template>
+        <EventDuplicatorReview
+          @topics={{this.topics}}
+          @isDuplicating={{false}}
+        />
+      </template>
+    );
+
+    assert
+      .dom("thead tr th:last-child")
+      .hasText("(TENTATIVE)", "header shows the trimmed annotation text");
+  });
+
+  test("the TBD column is hidden entirely when event_duplicator_tbd_annotation is blank", async function (assert) {
+    this.siteSettings.event_duplicator_tbd_annotation = "";
+    this.topics = [topic()];
+
+    await render(
+      <template>
+        <EventDuplicatorReview
+          @topics={{this.topics}}
+          @isDuplicating={{false}}
+        />
+      </template>
+    );
+
+    assert.dom("thead tr th").exists({ count: 4 }, "TBD header column gone");
+    assert.dom("tbody tr td").exists({ count: 4 }, "TBD body column gone");
+  });
+
   test("header checkbox in the Date TBD column selects/clears every row's TBD flag", async function (assert) {
+    this.siteSettings.event_duplicator_tbd_annotation = " (date TBD)";
     this.topics = [topic({ id: 1 }), topic({ id: 2 })];
 
     await render(

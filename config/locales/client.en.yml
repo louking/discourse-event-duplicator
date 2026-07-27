@@ -17,7 +17,6 @@ en:
         topic: "Topic"
         old_start: "Old start"
         new_start: "New start"
-        tbd: "Date TBD"
         date_strategy: "Date rule"
         no_topics: "No matching topics found."
         confirm: "Duplicate selected"

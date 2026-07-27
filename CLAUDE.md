@@ -396,6 +396,15 @@ request, since items can span categories.
   `@tracked revision` counter bumped after every mutation so the getter (which reads `revision`) knows to
   rerun. Header checkboxes in the selection and Date TBD columns select/clear that whole column
   (`allSelected`/`allTbd` getters, `toggleAllSelected`/`toggleAllTbd` actions) rather than only per-row.
+  **The Date TBD column's header text is the `event_duplicator_tbd_annotation` site setting's own value
+  (trimmed), not a fixed "Date TBD" label, and the whole column (header + every row's checkbox) is hidden
+  entirely when that setting is blank** (`tbdAnnotationText`/`showTbdColumn`/`columnCount` getters, the last
+  used for the empty-state row's `colspan`) — fixed for GitHub issue #15, where a reviewer changing the site
+  setting's text saw no reflection of it in the review table, and leaving it blank (annotation disabled) left
+  a checkbox that did nothing, since `TopicDuplicator#annotate` already no-ops when the setting is blank
+  regardless of `tbd`. The component injects `@service siteSettings` directly (the setting is `client: true`)
+  rather than threading it down from the controller, matching how other frontend files here read site
+  settings directly rather than passing them as args.
   `isSelected` defaults from each topic's `selected` flag from the backend — false for topics
   `DuplicationTracker` already flagged as duplicated. Also accepts `@result` (the controller's
   `{ duplicated, skipped }` state, see above) purely to compute `justDuplicated`/`duplicateUrl` per row —
@@ -448,12 +457,18 @@ caught by live manual testing:
   `sinon.stub().onCall(n).resolves(...)` per call instead.
 - `components/event-duplicator-review-test.gjs` — renders the real component via `setupRenderingTest` +
   `render()` (not `withPluginApi`/full acceptance boot), covering the date-rule-switch edits-survive
-  regression, header select-all/TBD-all checkboxes, already-duplicated/just-duplicated row rendering, and
-  `confirm()`'s payload shape. **Reassigning a test context property after the initial `render()` call must
+  regression, header select-all/TBD-all checkboxes, already-duplicated/just-duplicated row rendering,
+  `confirm()`'s payload shape, and (for issue #15) that the TBD column's header text tracks
+  `event_duplicator_tbd_annotation` and that the column disappears entirely when it's blank. **Reassigning a
+  test context property after the initial `render()` call must
   go through `this.set("prop", value)`, not plain `this.prop = value`** — confirmed live as an actual test
   bug: plain assignment before the first render works fine (nothing needs to react yet), but a plain
   reassignment *after* render silently fails to trigger a re-render (even followed by `await settled()`),
   because the render-test context only notifies Ember's rendering system of a change through `.set()`.
+  `setupRenderingTest` (see `discourse/tests/helpers/component-test.js` in core) sets `this.siteSettings` to
+  the same object the real `site-settings` service resolves to (`currentSettings()`), so overriding a
+  plugin's `client: true` setting for one test is just `this.siteSettings.event_duplicator_tbd_annotation =
+  "..."` before `render()` — no service stubbing needed, unlike the controller tests above.
 - `acceptance/event-duplicator-entry-points-test.js` — boots the real app (`acceptance()` +
   `needs.pretender`) to cover the sidebar link and topic-admin button across permission combinations,
   including the `event_duplicator_enabled` gap this test suite found (see `can-duplicate-events.js` above).

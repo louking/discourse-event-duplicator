@@ -89,12 +89,15 @@ Each row is one event topic that will be duplicated if you leave it checked.
   event automatically. There's no separate end-date field: the duplicate's end date is always worked out
   automatically from the source event's own duration (new start + however long the original event ran), so
   it can't end up out of sync with an edited start date.
-- **Date TBD** — checked by default, since a shifted date is a *proposal*, not a confirmed one. When
-  checked, the duplicate's title and event name get an annotation (`(date TBD)` by default — configurable,
-  see below) so it's obviously provisional until someone confirms the real date and unchecks it on a future
-  edit. Uncheck it here if you already know the date is correct.
+- **Date TBD** (or whatever text your site has set for the `event_duplicator_tbd_annotation` setting — the
+  column header shows that setting's own text, e.g. "(TENTATIVE)" if you've changed it, not a fixed label) —
+  checked by default, since a shifted date is a *proposal*, not a confirmed one. When checked, the
+  duplicate's title and event name get that annotation appended so it's obviously provisional until someone
+  confirms the real date and unchecks it on a future edit. Uncheck it here if you already know the date is
+  correct. If `event_duplicator_tbd_annotation` is set blank, this whole column disappears — there's nothing
+  useful for the checkbox to do once the annotation itself is disabled.
 - The checkbox in the first column controls whether that row gets duplicated at all. The checkboxes in the
-  header of that column and the Date TBD column select or clear the whole column at once.
+  header of that column and the Date TBD column (when shown) select or clear the whole column at once.
 - **Date rule** (above the table) controls how the "New start" dates were proposed — see below. Changing it
   recalculates every row's proposed date immediately, unless you've already edited that row's date by hand
   (a manual edit is preserved rather than overwritten by a rule change).
@@ -138,7 +141,9 @@ These are configured under **Admin → Settings**, searching for `event duplicat
 - **event_duplicator_default_date_strategy** — the default date rule (see the table above) used when
   someone hasn't changed the dropdown.
 - **event_duplicator_tbd_annotation** — the text appended to a duplicate's title/event name when it's
-  flagged "date TBD" (default `" (date TBD)"`). Set it blank to disable the annotation feature entirely.
+  flagged "date TBD" (default `" (date TBD)"`). The review page's Date TBD column header shows this same
+  text, and the whole column disappears if you set it blank, since that also disables the annotation
+  feature entirely.
 
 This plugin also respects discourse-calendar's own **discourse_post_event_allowed_on_groups** setting
 (search `post event` under Admin → Settings) — whoever can't create calendar events at all, per that
