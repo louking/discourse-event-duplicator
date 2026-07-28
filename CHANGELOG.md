@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-07-28
+
+### Fixed
+
+- Review page: widened the Date rule dropdown so the "Same weekday of month"
+  option text no longer clips, capped the Topic title input's width so one
+  unusually long title doesn't stretch the whole column, and added a spinner
+  to the Duplicate selected button while a duplication is in progress (#18).
+
 ## [1.0.0] - 2026-07-27
 
 First stable release. Backend, frontend, and automated test coverage
@@ -34,5 +43,6 @@ First stable release. Backend, frontend, and automated test coverage
   `event_duplicator_allowed_groups` site setting, and discourse-calendar's
   own event-creation permission.
 
-[Unreleased]: https://github.com/louking/discourse-event-duplicator/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/louking/discourse-event-duplicator/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/louking/discourse-event-duplicator/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/louking/discourse-event-duplicator/releases/tag/v1.0.0
