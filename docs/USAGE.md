@@ -53,28 +53,12 @@ Use this when you have several related event topics — e.g. every race in a sea
 Open the topic you want to duplicate, use its admin/wrench menu, and choose **Duplicate event**. This skips
 the picker step and takes you straight to the review page for that one topic.
 
-**This entry point needs one more thing beyond the three conditions above: you must also have
-moderator-level permission on that topic's category** (staff, trust level 4, or membership in that
-category's assigned moderator group). The wrench/admin menu itself is a Discourse feature this plugin adds
-a button into, not something this plugin renders on its own — Discourse only shows that menu at all to users
-who can moderate the topic in some way (close/archive/split, for example), regardless of whether they'd
-otherwise be allowed to duplicate events. If you meet the three conditions above but not this one, you'll
-need to use the series-duplication picker (sidebar link) instead, which doesn't have this extra requirement.
-
-Getting the "category's assigned moderator group" route working needs two separate admin steps, and it's
-easy to do only one and see no effect with no explanation why:
-
-1. Turn on the **enable_category_group_moderation** site setting (site-wide, off by default).
-2. On the category itself (Category Settings → Moderation), assign the group under "Additional group(s)
-   that can moderate content in this category."
-
-Both are required — assigning the group to the category does nothing while the site setting is off, since
-Discourse's own category-group-moderator check short-circuits to `false` whenever that setting is disabled,
-regardless of what's assigned on the category. Staff and trust-level-4 users aren't affected by either of
-these — they already pass the moderator-level check unconditionally.
+If you don't see the wrench/admin menu, or don't see **Duplicate event** in it, please contact your
+administrator — this entry point needs a bit more permission than the sidebar picker does. You can use the
+series-duplication picker (sidebar link) instead in the meantime, for the same result.
 
 The button only appears on topics that actually have a discourse-calendar event — it won't show on an
-ordinary topic, even if you otherwise meet all three conditions above.
+ordinary topic, even if you otherwise have permission to duplicate events.
 
 ## The review page
 
@@ -152,6 +136,29 @@ These are configured under **Admin → Settings**, searching for `event duplicat
 This plugin also respects discourse-calendar's own **discourse_post_event_allowed_on_groups** setting
 (search `post event` under Admin → Settings) — whoever can't create calendar events at all, per that
 setting, can't use this plugin either, regardless of the settings above.
+
+### Single-topic access requires category moderator permission
+
+The single-topic "Duplicate event" button (see "Duplicating a single topic" above) needs one thing beyond
+the three conditions listed under "Who can use it": the user must also have moderator-level permission on
+that topic's category (staff, trust level 4, or membership in that category's assigned moderator group). The
+wrench/admin menu itself is a Discourse feature this plugin adds a button into, not something this plugin
+renders on its own — Discourse only shows that menu at all to users who can moderate the topic in some way
+(close/archive/split, for example), regardless of whether they'd otherwise be allowed to duplicate events. A
+user who meets the three conditions under "Who can use it" but not this one won't see the button, and should
+use the series-duplication picker (sidebar link) instead, which doesn't have this extra requirement.
+
+Staff and trust-level-4 users already pass this unconditionally, but granting it to a specific group (e.g.
+"race organizers") via that category's assigned moderator group needs two separate admin steps — it's easy
+to do only one and see no effect with no explanation why:
+
+1. Turn on the **enable_category_group_moderation** site setting (site-wide, off by default).
+2. On the category itself (Category Settings → Moderation), assign the group under "Additional group(s)
+   that can moderate content in this category."
+
+Both are required — assigning the group to the category does nothing while the site setting is off, since
+Discourse's own category-group-moderator check short-circuits to `false` whenever that setting is disabled,
+regardless of what's assigned on the category.
 
 ## Good to know
 
