@@ -31,8 +31,13 @@
     max-width: 100%;
   }
 
+  // 20em clipped the longer "Same weekday of month (e.g. 3rd Saturday)"
+  // option text -- a <select>'s displayed width is a straight CSS width
+  // (unlike an <option>, which can be as wide as it needs), so it has to
+  // fit the longest option's label, not just look roughly right. See
+  // GitHub issue #18.
   .event-duplicator-date-strategy select {
-    min-width: 20em;
+    min-width: 28em;
   }
 
   .event-duplicator-result {

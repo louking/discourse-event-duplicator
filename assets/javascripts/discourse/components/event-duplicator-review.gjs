@@ -31,10 +31,19 @@ function withNewDate(newDate, previousIso) {
 // this is per-item, not a single shared column width) lets the table's
 // default auto layout size the whole Topic column to fit the longest title
 // actually present, rather than every row having to fit inside a fixed guess.
+// Capped at MAX so one unusually long title (event names with a long
+// "(GP/Equalizer 5 Mile only)"-style suffix are common here) doesn't blow the
+// whole column out to where every other row's input is stretched just as
+// wide -- see GitHub issue #18. A title longer than the cap still scrolls
+// within its own input rather than being clipped.
 const MIN_TITLE_INPUT_SIZE = 20;
+const MAX_TITLE_INPUT_SIZE = 60;
 
 function titleInputSize(title) {
-  return Math.max(MIN_TITLE_INPUT_SIZE, (title ?? "").length + 2);
+  return Math.min(
+    MAX_TITLE_INPUT_SIZE,
+    Math.max(MIN_TITLE_INPUT_SIZE, (title ?? "").length + 2)
+  );
 }
 
 // The review/edit step: lists each proposed duplicate's original ("old")
@@ -153,7 +162,7 @@ export default class EventDuplicatorReview extends Component {
     <DButton
       @class="btn-primary"
       @action={{this.confirm}}
-      @disabled={{@isDuplicating}}
+      @isLoading={{@isDuplicating}}
       @label="event_duplicator.review.confirm"
     />
   </template>
