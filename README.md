@@ -30,6 +30,7 @@ high-level.
   to create topics in the target category *and* belong to one of the groups in the
   `event_duplicator_allowed_groups` site setting (default: staff only). See
   [docs/USAGE.md](docs/USAGE.md#site-settings) for the full settings reference.
+- Only tested against Discourse 2026.7.0 — not verified on earlier releases.
 
 ## Installation
 
