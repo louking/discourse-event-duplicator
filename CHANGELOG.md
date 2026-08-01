@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-01
+
+### Added
+
+- Configurable month-based date shift: a "Shift (months)" field on the review
+  page controls how many months forward a duplicated event's date is moved
+  (12 for annual, 3 for quarterly, etc.), with a site-wide default via the new
+  `event_duplicator_default_shift_months` site setting (#19).
+
 ## [1.0.1] - 2026-07-28
 
 ### Fixed
@@ -43,6 +52,7 @@ First stable release. Backend, frontend, and automated test coverage
   `event_duplicator_allowed_groups` site setting, and discourse-calendar's
   own event-creation permission.
 
-[Unreleased]: https://github.com/louking/discourse-event-duplicator/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/louking/discourse-event-duplicator/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/louking/discourse-event-duplicator/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/louking/discourse-event-duplicator/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/louking/discourse-event-duplicator/releases/tag/v1.0.0
