@@ -12,18 +12,22 @@ export default class EventDuplicatorRoute extends Route {
     starts_after: { refreshModel: true },
     starts_before: { refreshModel: true },
     date_strategy: { refreshModel: true },
+    shift_months: { refreshModel: true },
   };
 
   async model(params) {
     const dateStrategy =
       params.date_strategy ||
       this.siteSettings.event_duplicator_default_date_strategy;
+    const shiftMonths =
+      parseInt(params.shift_months, 10) ||
+      this.siteSettings.event_duplicator_default_shift_months;
 
     if (params.topic_id) {
-      return this.modelForSingleTopic(params, dateStrategy);
+      return this.modelForSingleTopic(params, dateStrategy, shiftMonths);
     }
 
-    return this.modelForTaggedSeries(params, dateStrategy);
+    return this.modelForTaggedSeries(params, dateStrategy, shiftMonths);
   }
 
   // A fresh model fetch means `topics` now carries up-to-date
@@ -46,15 +50,17 @@ export default class EventDuplicatorRoute extends Route {
     controller.result = null;
   }
 
-  async modelForSingleTopic(params, dateStrategy) {
+  async modelForSingleTopic(params, dateStrategy, shiftMonths) {
     const proposed = await this.eventDuplicator.proposedDates(
       params.topic_id,
-      dateStrategy
+      dateStrategy,
+      shiftMonths
     );
 
     return {
       tags: [],
       dateStrategy,
+      shiftMonths,
       topics: [
         {
           id: proposed.topic_id,
@@ -72,7 +78,7 @@ export default class EventDuplicatorRoute extends Route {
     };
   }
 
-  async modelForTaggedSeries(params, dateStrategy) {
+  async modelForTaggedSeries(params, dateStrategy, shiftMonths) {
     const tags = (params.tags || "").split(",").filter(Boolean);
     const { topics } = await this.eventDuplicator.taggedTopics({
       categoryId: params.category_id,
@@ -80,8 +86,9 @@ export default class EventDuplicatorRoute extends Route {
       startsAfter: params.starts_after,
       startsBefore: params.starts_before,
       dateStrategy,
+      shiftMonths,
     });
 
-    return { tags, dateStrategy, topics };
+    return { tags, dateStrategy, shiftMonths, topics };
   }
 }

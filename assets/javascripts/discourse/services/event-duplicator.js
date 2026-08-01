@@ -11,6 +11,7 @@ export default class EventDuplicatorService extends Service {
     startsAfter,
     startsBefore,
     dateStrategy,
+    shiftMonths,
   } = {}) {
     const [tagName, ...additionalTags] = tags;
 
@@ -21,14 +22,15 @@ export default class EventDuplicatorService extends Service {
         starts_after: startsAfter,
         starts_before: startsBefore,
         date_strategy: dateStrategy,
+        shift_months: shiftMonths,
       },
     });
   }
 
   // GET the proposed new date(s) for a single topic's event.
-  proposedDates(topicId, dateStrategy) {
+  proposedDates(topicId, dateStrategy, shiftMonths) {
     return ajax(`/event-duplicator/topics/${topicId}/proposed_dates`, {
-      data: { date_strategy: dateStrategy },
+      data: { date_strategy: dateStrategy, shift_months: shiftMonths },
     });
   }
 

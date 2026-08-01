@@ -68,9 +68,10 @@ export default apiInitializer((api) => {
           // series-mode params left over from a previous visit need
           // clearing explicitly too, even though `model()` already
           // prioritizes `topic_id` and so wouldn't visibly misbehave here.
-          // `date_strategy` belongs in this list too, unlike the others:
-          // `model()` doesn't prioritize it away, so a rule picked during an
-          // earlier series-mode visit (e.g. "Same weekday of month") silently
+          // `date_strategy` (and, for the same reason, `shift_months`)
+          // belong in this list too, unlike the others: `model()` doesn't
+          // prioritize them away, so a rule/shift picked during an earlier
+          // series-mode visit (e.g. "Same weekday of month") silently
           // carried over and was used to compute this topic's proposed date
           // instead of the intended default -- see GitHub issue #13.
           queryParams: {
@@ -80,6 +81,7 @@ export default apiInitializer((api) => {
             starts_after: null,
             starts_before: null,
             date_strategy: null,
+            shift_months: null,
           },
         });
       },

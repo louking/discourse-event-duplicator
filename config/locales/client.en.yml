@@ -18,6 +18,7 @@ en:
         old_start: "Old start"
         new_start: "New start"
         date_strategy: "Date rule"
+        shift_months: "Shift (months)"
         no_topics: "No matching topics found."
         confirm: "Duplicate selected"
         duplicated_to_topic: "duplicated to topic"

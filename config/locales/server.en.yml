@@ -3,4 +3,5 @@ en:
     event_duplicator_enabled: "Enable the Event Duplicator plugin."
     event_duplicator_allowed_groups: "Groups whose members may duplicate calendar events, in addition to the existing per-category permission check."
     event_duplicator_default_date_strategy: "Default strategy for proposing a duplicated event's new date(s): calendar_date shifts to the same calendar date, nth_weekday_of_month preserves e.g. the 3rd Saturday of the month."
+    event_duplicator_default_shift_months: "Default number of months to shift a duplicated event's date(s) forward by, when not overridden in the review step. 12 shifts by one year."
     event_duplicator_tbd_annotation: "Text appended (with a space automatically inserted before it -- no need to add a leading space here, since Discourse strips it on save) to a duplicated topic's title (and event name, if set) when it's marked as not-yet-settled in the review step. Leave blank to disable the annotation entirely."

@@ -22,6 +22,16 @@ export default <template>
       </select>
     </div>
 
+    <div class="control-group event-duplicator-shift-months">
+      <label>{{i18n "event_duplicator.review.shift_months"}}</label>
+      <input
+        type="number"
+        min="1"
+        value={{@model.shiftMonths}}
+        {{on "change" @controller.setShiftMonths}}
+      />
+    </div>
+
     <EventDuplicatorReview
       @topics={{@model.topics}}
       @isDuplicating={{@controller.isDuplicating}}

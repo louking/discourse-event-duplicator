@@ -17,6 +17,7 @@ export default class EventDuplicatorController extends Controller {
     "starts_after",
     "starts_before",
     "date_strategy",
+    "shift_months",
   ];
 
   get tagsLabel() {
@@ -50,6 +51,13 @@ export default class EventDuplicatorController extends Controller {
   setDateStrategy(event) {
     this.router.transitionTo("event-duplicator", {
       queryParams: { date_strategy: event.target.value },
+    });
+  }
+
+  @action
+  setShiftMonths(event) {
+    this.router.transitionTo("event-duplicator", {
+      queryParams: { shift_months: event.target.value },
     });
   }
 

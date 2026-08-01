@@ -25,7 +25,11 @@ module ::DiscourseEventDuplicator
         ).call
 
       strategy = resolve_strategy(params[:date_strategy])
-      proposed = topics.each_with_object({}) { |topic, h| h[topic.id] = proposed_dates_for(topic, strategy) }
+      shift_months = resolve_shift_months(params[:shift_months])
+      proposed =
+        topics.each_with_object({}) do |topic, h|
+          h[topic.id] = proposed_dates_for(topic, strategy, shift_months)
+        end
       existing_duplicates =
         topics.each_with_object({}) do |topic, h|
           h[topic.id] = DuplicationTracker.existing_duplicate_for(
@@ -55,7 +59,14 @@ module ::DiscourseEventDuplicator
       raise Discourse::NotFound if event.blank?
 
       strategy = resolve_strategy(params[:date_strategy])
-      proposed = DateShifter.new(starts_at: event.starts_at, ends_at: event.ends_at, strategy: strategy).call
+      shift_months = resolve_shift_months(params[:shift_months])
+      proposed =
+        DateShifter.new(
+          starts_at: event.starts_at,
+          ends_at: event.ends_at,
+          strategy: strategy,
+          shift: shift_months.months,
+        ).call
       existing =
         DuplicationTracker.existing_duplicate_for(source_topic: topic, target_starts_at: proposed[:starts_at])
 
@@ -167,9 +178,19 @@ module ::DiscourseEventDuplicator
       (param.presence || SiteSetting.event_duplicator_default_date_strategy).to_sym
     end
 
-    def proposed_dates_for(topic, strategy)
+    def resolve_shift_months(param)
+      months = param.presence&.to_i
+      months && months > 0 ? months : SiteSetting.event_duplicator_default_shift_months
+    end
+
+    def proposed_dates_for(topic, strategy, shift_months)
       event = topic.first_post&.event
-      DateShifter.new(starts_at: event&.starts_at, ends_at: event&.ends_at, strategy: strategy).call
+      DateShifter.new(
+        starts_at: event&.starts_at,
+        ends_at: event&.ends_at,
+        strategy: strategy,
+        shift: shift_months.months,
+      ).call
     end
 
     def parse_time(value)

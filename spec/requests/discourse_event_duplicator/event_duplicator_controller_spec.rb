@@ -148,6 +148,26 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
         expect(result["existing_duplicate_topic_url"]).to eq("/t/#{duplicate_topic.id}")
         expect(result["selected"]).to eq(false)
       end
+
+      it "shifts the proposed date by an explicit shift_months param instead of the default 12" do
+        get "/event-duplicator/tags/grand-prix/topics.json",
+            params: {
+              category_id: category.id,
+              shift_months: 3,
+            }
+
+        result = response.parsed_body["topics"].first
+        expect(result["proposed_start"]).to eq("2026-08-24T13:00:00.000Z")
+      end
+
+      it "falls back to the event_duplicator_default_shift_months site setting when omitted" do
+        SiteSetting.event_duplicator_default_shift_months = 6
+
+        get "/event-duplicator/tags/grand-prix/topics.json", params: { category_id: category.id }
+
+        result = response.parsed_body["topics"].first
+        expect(result["proposed_start"]).to eq("2026-11-24T13:00:00.000Z")
+      end
     end
   end
 
@@ -183,6 +203,20 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
         expect(response.parsed_body["already_duplicated"]).to eq(true)
         expect(response.parsed_body["existing_duplicate_topic_id"]).to eq(duplicate_topic.id)
         expect(response.parsed_body["existing_duplicate_topic_url"]).to eq("/t/#{duplicate_topic.id}")
+      end
+
+      it "shifts the proposed date by an explicit shift_months param instead of the default 12" do
+        get "/event-duplicator/topics/#{topic.id}/proposed_dates.json", params: { shift_months: 1 }
+
+        expect(response.parsed_body["proposed_start"]).to eq("2026-06-24T13:00:00.000Z")
+      end
+
+      it "falls back to the event_duplicator_default_shift_months site setting when omitted" do
+        SiteSetting.event_duplicator_default_shift_months = 6
+
+        get "/event-duplicator/topics/#{topic.id}/proposed_dates.json"
+
+        expect(response.parsed_body["proposed_start"]).to eq("2026-11-24T13:00:00.000Z")
       end
     end
 

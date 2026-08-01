@@ -24,6 +24,12 @@ RSpec.describe DiscourseEventDuplicator::DateShifter do
       expect(result[:ends_at]).to eq(Time.zone.parse("2028-05-24 15:00"))
     end
 
+    it "shifts by a number of months, not just whole years" do
+      shifter = described_class.new(starts_at: Time.zone.parse("2026-05-24 13:00"), shift: 3.months)
+
+      expect(shifter.call[:starts_at]).to eq(Time.zone.parse("2026-08-24 13:00"))
+    end
+
     it "returns a nil ends_at when none was given" do
       shifter = described_class.new(starts_at: Time.zone.parse("2026-05-24 13:00"))
 

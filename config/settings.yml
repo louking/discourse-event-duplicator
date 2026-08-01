@@ -15,6 +15,10 @@ plugins:
     choices:
       - calendar_date
       - nth_weekday_of_month
+  event_duplicator_default_shift_months:
+    default: 12
+    client: true
+    min: 1
   event_duplicator_tbd_annotation:
     default: "(date TBD)"
     client: true

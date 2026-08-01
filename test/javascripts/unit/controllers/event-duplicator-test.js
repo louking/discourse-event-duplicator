@@ -43,6 +43,18 @@ module("Unit | Controller | event-duplicator", function (hooks) {
     });
   });
 
+  test("setShiftMonths transitions with only shift_months as a query param", function (assert) {
+    const ctrl = controller(this.owner);
+    const transitionTo = sinon.stub(ctrl.router, "transitionTo");
+
+    ctrl.setShiftMonths({ target: { value: "3" } });
+
+    assert.true(transitionTo.calledOnce);
+    const [routeName, options] = transitionTo.firstCall.args;
+    assert.strictEqual(routeName, "event-duplicator");
+    assert.deepEqual(options.queryParams, { shift_months: "3" });
+  });
+
   test("confirmDuplication maps each selected item to topic_id/starts_at/tbd/title, and sends force only for already-duplicated rows", async function (assert) {
     const duplicate = sinon.stub().resolves({ duplicated: [], skipped: [] });
     stubEventDuplicator(this.owner, duplicate);
