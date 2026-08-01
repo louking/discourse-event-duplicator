@@ -84,9 +84,9 @@ Each row is one event topic that will be duplicated if you leave it checked.
   useful for the checkbox to do once the annotation itself is disabled.
 - The checkbox in the first column controls whether that row gets duplicated at all. The checkboxes in the
   header of that column and the Date TBD column (when shown) select or clear the whole column at once.
-- **Date rule** (above the table) controls how the "New start" dates were proposed — see below. Changing it
-  recalculates every row's proposed date immediately, unless you've already edited that row's date by hand
-  (a manual edit is preserved rather than overwritten by a rule change).
+- **Date rule** and **Shift (months)** (above the table) control how the "New start" dates were proposed —
+  see below. Changing either recalculates every row's proposed date immediately, unless you've already edited
+  that row's date by hand (a manual edit is preserved rather than overwritten by a rule/shift change).
 
 If a topic was already duplicated to the same target year in an earlier run — whether from re-running a
 series (this matters if a topic carries more than one series tag and you've run the duplicator once per
@@ -110,11 +110,18 @@ Simply shifting "the same date" forward doesn't always make sense — a lot of r
 
 | Rule | What it does | Example |
 |---|---|---|
-| Same calendar date | Adds one year (or whatever the shift is) to the exact date. | July 4, 2026 → July 4, 2027 |
-| Same weekday of month | Preserves which occurrence of that weekday it was. | 3rd Saturday of May 2026 → 3rd Saturday of May 2027 |
+| Same calendar date | Adds the shift to the exact date. | July 4, 2026 + 12 months → July 4, 2027 |
+| Same weekday of month | Preserves which occurrence of that weekday it was. | 3rd Saturday of May 2026 + 12 months → 3rd Saturday of May 2027 |
 
 An admin can set which of these is the site-wide default; you can always override it per run using the
 dropdown on the review page.
+
+### Shift amount
+
+Not every recurring event is annual — some are monthly, quarterly, or on some other cadence. The **Shift
+(months)** field next to the Date rule dropdown controls how many months forward each proposed date is
+moved (12 for an annual event, 3 for a quarterly one, and so on). An admin sets the site-wide default via the
+`event_duplicator_default_shift_months` site setting; you can always override it per run in that field.
 
 ## Site settings
 
@@ -126,6 +133,9 @@ These are configured under **Admin → Settings**, searching for `event duplicat
   "everyone" group rather than clearing the list.
 - **event_duplicator_default_date_strategy** — the default date rule (see the table above) used when
   someone hasn't changed the dropdown.
+- **event_duplicator_default_shift_months** — the default number of months to shift a duplicated event's
+  date(s) forward by (see "Shift amount" above), used when someone hasn't changed that field. Default: 12
+  (one year).
 - **event_duplicator_tbd_annotation** — the text appended to a duplicate's title/event name when it's
   flagged "date TBD" (default `"(date TBD)"`), with a separating space inserted automatically — don't add
   your own leading space here, since Discourse strips any leading/trailing whitespace from a setting's value
