@@ -29,8 +29,8 @@ module("Component | event-duplicator-review", function (hooks) {
     await render(
       <template>
         <EventDuplicatorReview
-          @topics={{this.topics}}
           @isDuplicating={{false}}
+          @topics={{this.topics}}
         />
       </template>
     );
@@ -46,9 +46,9 @@ module("Component | event-duplicator-review", function (hooks) {
     await render(
       <template>
         <EventDuplicatorReview
-          @topics={{this.topics}}
           @isDuplicating={{false}}
           @onConfirm={{this.onConfirm}}
+          @topics={{this.topics}}
         />
       </template>
     );
@@ -73,8 +73,8 @@ module("Component | event-duplicator-review", function (hooks) {
     await render(
       <template>
         <EventDuplicatorReview
-          @topics={{this.topics}}
           @isDuplicating={{false}}
+          @topics={{this.topics}}
         />
       </template>
     );
@@ -114,8 +114,8 @@ module("Component | event-duplicator-review", function (hooks) {
     await render(
       <template>
         <EventDuplicatorReview
-          @topics={{this.topics}}
           @isDuplicating={{false}}
+          @topics={{this.topics}}
         />
       </template>
     );
@@ -144,8 +144,8 @@ module("Component | event-duplicator-review", function (hooks) {
     await render(
       <template>
         <EventDuplicatorReview
-          @topics={{this.topics}}
           @isDuplicating={{false}}
+          @topics={{this.topics}}
         />
       </template>
     );
@@ -162,8 +162,8 @@ module("Component | event-duplicator-review", function (hooks) {
     await render(
       <template>
         <EventDuplicatorReview
-          @topics={{this.topics}}
           @isDuplicating={{false}}
+          @topics={{this.topics}}
         />
       </template>
     );
@@ -179,8 +179,8 @@ module("Component | event-duplicator-review", function (hooks) {
     await render(
       <template>
         <EventDuplicatorReview
-          @topics={{this.topics}}
           @isDuplicating={{false}}
+          @topics={{this.topics}}
         />
       </template>
     );
@@ -215,8 +215,8 @@ module("Component | event-duplicator-review", function (hooks) {
     await render(
       <template>
         <EventDuplicatorReview
-          @topics={{this.topics}}
           @isDuplicating={{false}}
+          @topics={{this.topics}}
         />
       </template>
     );
@@ -239,10 +239,10 @@ module("Component | event-duplicator-review", function (hooks) {
     await render(
       <template>
         <EventDuplicatorReview
-          @topics={{this.topics}}
           @isDuplicating={{false}}
-          @result={{this.result}}
           @onConfirm={{this.onConfirm}}
+          @result={{this.result}}
+          @topics={{this.topics}}
         />
       </template>
     );
@@ -271,9 +271,9 @@ module("Component | event-duplicator-review", function (hooks) {
     await render(
       <template>
         <EventDuplicatorReview
-          @topics={{this.topics}}
           @isDuplicating={{false}}
           @onConfirm={{this.onConfirm}}
+          @topics={{this.topics}}
         />
       </template>
     );
@@ -284,7 +284,7 @@ module("Component | event-duplicator-review", function (hooks) {
     assert.strictEqual(selectedItems.length, 1);
     assert.strictEqual(selectedItems[0].topic.id, 1);
     assert.strictEqual(selectedItems[0].title, "Grand Prix");
-    assert.strictEqual(selectedItems[0].tbd, true);
+    assert.true(selectedItems[0].tbd);
     assert.strictEqual(selectedItems[0].startsAt, topic().proposed_start);
   });
 });

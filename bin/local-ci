@@ -13,14 +13,11 @@ if [ ! -x "$DISCOURSE_ROOT/bin/rails" ]; then
   exit 1
 fi
 
-echo "==> eslint"
-(cd "$PLUGIN_DIR" && yarn eslint assets/javascripts test/javascripts)
+echo "==> JS lint (stylelint, eslint, prettier, tsc)"
+(cd "$PLUGIN_DIR" && pnpm lint)
 
-echo "==> prettier"
-(cd "$PLUGIN_DIR" && npx prettier --check "assets/**/*.{js,gjs,hbs,scss}" "test/**/*.{js,gjs}")
-
-echo "==> rubocop"
-(cd "$DISCOURSE_ROOT" && bundle exec rubocop "plugins/$PLUGIN_NAME")
+echo "==> rubocop + syntax_tree (plugin's own Gemfile, as CI runs them)"
+(cd "$PLUGIN_DIR" && bundle exec rubocop . && bundle exec stree check Gemfile $(git ls-files '*.rb' '*.rake' '*.thor'))
 
 echo "==> zeitwerk:check (would the app fail to eager_load, e.g. in production?)"
 (cd "$DISCOURSE_ROOT" && bin/rails zeitwerk:check --trace)

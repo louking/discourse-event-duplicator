@@ -68,7 +68,10 @@ module ::DiscourseEventDuplicator
           shift: shift_months.months,
         ).call
       existing =
-        DuplicationTracker.existing_duplicate_for(source_topic: topic, target_starts_at: proposed[:starts_at])
+        DuplicationTracker.existing_duplicate_for(
+          source_topic: topic,
+          target_starts_at: proposed[:starts_at],
+        )
 
       render json: {
                topic_id: topic.id,
@@ -114,7 +117,11 @@ module ::DiscourseEventDuplicator
         tbd = ActiveModel::Type::Boolean.new.cast(item[:tbd])
         title = item[:title].presence
 
-        existing = DuplicationTracker.existing_duplicate_for(source_topic: topic, target_starts_at: starts_at)
+        existing =
+          DuplicationTracker.existing_duplicate_for(
+            source_topic: topic,
+            target_starts_at: starts_at,
+          )
         if existing && !force
           skipped << {
             topic_id: topic.id,
@@ -134,8 +141,16 @@ module ::DiscourseEventDuplicator
               tbd: tbd,
               title: title,
             ).call
-          DuplicationTracker.record!(source_topic: topic, new_topic: new_topic, starts_at: starts_at)
-          duplicated << { topic_id: topic.id, new_topic_id: new_topic.id, new_topic_url: new_topic.relative_url }
+          DuplicationTracker.record!(
+            source_topic: topic,
+            new_topic: new_topic,
+            starts_at: starts_at,
+          )
+          duplicated << {
+            topic_id: topic.id,
+            new_topic_id: new_topic.id,
+            new_topic_url: new_topic.relative_url,
+          }
         rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved => e
           skipped << { topic_id: topic.id, reason: e.message }
         end
@@ -171,7 +186,8 @@ module ::DiscourseEventDuplicator
     # handling of that -- so this doesn't newly hard-block on a check it has
     # no way to answer.
     def can_create_calendar_event?
-      !guardian.respond_to?(:can_create_discourse_post_event?) || guardian.can_create_discourse_post_event?
+      !guardian.respond_to?(:can_create_discourse_post_event?) ||
+        guardian.can_create_discourse_post_event?
     end
 
     def resolve_strategy(param)

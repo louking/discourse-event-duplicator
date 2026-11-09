@@ -2,3 +2,6 @@
 /.bundle/
 /vendor/bundle/
 .DS_Store
+/gems
+/auto_generated
+.eslintcache

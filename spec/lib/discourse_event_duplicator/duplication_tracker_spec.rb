@@ -39,7 +39,8 @@ RSpec.describe DiscourseEventDuplicator::DuplicationTracker do
   end
 
   it "returns nil when no target date is given" do
-    found = described_class.existing_duplicate_for(source_topic: source_topic, target_starts_at: nil)
+    found =
+      described_class.existing_duplicate_for(source_topic: source_topic, target_starts_at: nil)
 
     expect(found).to be_nil
   end
@@ -62,13 +63,17 @@ RSpec.describe DiscourseEventDuplicator::DuplicationTracker do
       described_class.existing_duplicate_for(
         source_topic: source_topic,
         target_starts_at: Time.zone.parse("2027-05-01 00:00"),
-      )["topic_id"],
+      )[
+        "topic_id"
+      ],
     ).to eq(duplicate_topic.id)
     expect(
       described_class.existing_duplicate_for(
         source_topic: source_topic,
         target_starts_at: Time.zone.parse("2028-05-01 00:00"),
-      )["topic_id"],
+      )[
+        "topic_id"
+      ],
     ).to eq(other_duplicate_topic.id)
   end
 

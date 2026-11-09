@@ -44,7 +44,7 @@ acceptance(
   function (needs) {
     needs.user({
       can_create_discourse_post_event: true,
-      groups: [{ id: 3, name: "staff" }],
+      event_duplicator_in_allowed_groups: true,
     });
     needs.settings({
       event_duplicator_enabled: true,

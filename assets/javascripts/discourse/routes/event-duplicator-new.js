@@ -1,6 +1,6 @@
 import Route from "@ember/routing/route";
 import { service } from "@ember/service";
-import { canDuplicateEvents } from "../lib/can-duplicate-events";
+import { canDuplicateEvents } from "../lib/can-duplicate-events.js";
 
 export default class EventDuplicatorNewRoute extends Route {
   @service currentUser;

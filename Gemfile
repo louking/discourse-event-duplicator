@@ -2,4 +2,7 @@
 
 source "https://rubygems.org"
 
-gem "rubocop-discourse"
+group :development do
+  gem "rubocop-discourse"
+  gem "syntax_tree"
+end

@@ -3,7 +3,9 @@
 require "rails_helper"
 
 RSpec.describe TopicViewSerializer do
-  subject(:serializer) { described_class.new(TopicView.new(topic), scope: Guardian.new, root: false) }
+  subject(:serializer) do
+    described_class.new(TopicView.new(topic), scope: Guardian.new, root: false)
+  end
 
   fab!(:topic)
   fab!(:post) { Fabricate(:post, topic: topic) }

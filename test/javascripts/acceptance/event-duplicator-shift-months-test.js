@@ -1,8 +1,8 @@
 import { click, currentURL, visit } from "@ember/test-helpers";
 import { test } from "qunit";
 import { cloneJSON } from "discourse/lib/object";
-import { acceptance } from "discourse/tests/helpers/qunit-helpers";
 import topicFixtures from "discourse/tests/fixtures/topic";
+import { acceptance } from "discourse/tests/helpers/qunit-helpers";
 
 const ALLOWED_CATEGORY = {
   id: 400,
@@ -32,7 +32,7 @@ const PROPOSED_DATES = {
 acceptance("Event Duplicator - shift months input", function (needs) {
   needs.user({
     can_create_discourse_post_event: true,
-    groups: [{ id: 3, name: "staff" }],
+    event_duplicator_in_allowed_groups: true,
   });
   needs.settings({
     event_duplicator_enabled: true,
@@ -75,7 +75,7 @@ acceptance("Event Duplicator - shift months input", function (needs) {
     await click(".toggle-admin-menu");
     await click(".event-duplicator-duplicate-topic");
 
-    assert.notOk(
+    assert.false(
       currentURL().includes("shift_months="),
       "the stale shift_months query param was cleared"
     );

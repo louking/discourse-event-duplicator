@@ -1,10 +1,13 @@
 import { module, test } from "qunit";
 import { canDuplicateEvents } from "discourse/plugins/discourse-event-duplicator/discourse/lib/can-duplicate-events";
 
+// Group membership itself is decided server-side (the
+// `event_duplicator_in_allowed_groups` current_user attribute in plugin.rb);
+// its cases are covered in spec/serializers/current_user_serializer_spec.rb.
 function user(overrides = {}) {
   return {
     can_create_discourse_post_event: true,
-    groups: [{ id: 3 }],
+    event_duplicator_in_allowed_groups: true,
     ...overrides,
   };
 }
@@ -12,7 +15,6 @@ function user(overrides = {}) {
 function siteSettings(overrides = {}) {
   return {
     event_duplicator_enabled: true,
-    event_duplicator_allowed_groups: "3",
     ...overrides,
   };
 }
@@ -40,39 +42,25 @@ module("Unit | Lib | can-duplicate-events", function () {
     );
   });
 
-  test("false when event_duplicator_allowed_groups is empty (nobody passes, not unrestricted)", function (assert) {
+  test("false when the server says the user isn't in an allowed group", function (assert) {
     assert.false(
       canDuplicateEvents(
-        user(),
-        siteSettings({ event_duplicator_allowed_groups: "" })
+        user({ event_duplicator_in_allowed_groups: false }),
+        siteSettings()
       )
     );
   });
 
-  test("false when the user belongs to none of the allowed groups", function (assert) {
+  test("false when the attribute is missing entirely", function (assert) {
     assert.false(
       canDuplicateEvents(
-        user({ groups: [{ id: 14 }] }),
-        siteSettings({ event_duplicator_allowed_groups: "3|5" })
+        user({ event_duplicator_in_allowed_groups: undefined }),
+        siteSettings()
       )
     );
   });
 
-  test("true when the user belongs to one of several allowed groups", function (assert) {
-    assert.true(
-      canDuplicateEvents(
-        user({ groups: [{ id: 1 }, { id: 5 }] }),
-        siteSettings({ event_duplicator_allowed_groups: "3|5" })
-      )
-    );
-  });
-
-  test("true when the allowed groups list includes the everyone auto-group -- relies on every real user's groups already including id 0, there's no special-casing for it", function (assert) {
-    assert.true(
-      canDuplicateEvents(
-        user({ groups: [{ id: 0 }, { id: 14 }] }),
-        siteSettings({ event_duplicator_allowed_groups: "0" })
-      )
-    );
+  test("true when every check passes", function (assert) {
+    assert.true(canDuplicateEvents(user(), siteSettings()));
   });
 });

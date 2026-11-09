@@ -202,7 +202,9 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
 
         expect(response.parsed_body["already_duplicated"]).to eq(true)
         expect(response.parsed_body["existing_duplicate_topic_id"]).to eq(duplicate_topic.id)
-        expect(response.parsed_body["existing_duplicate_topic_url"]).to eq("/t/#{duplicate_topic.id}")
+        expect(response.parsed_body["existing_duplicate_topic_url"]).to eq(
+          "/t/#{duplicate_topic.id}",
+        )
       end
 
       it "shifts the proposed date by an explicit shift_months param instead of the default 12" do
@@ -247,7 +249,12 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
     fab!(:topic) { Fabricate(:topic, category: category, title: "Monaco Grand Prix") }
     fab!(:first_post) { Fabricate(:post, topic: topic) }
     fab!(:event) do
-      Fabricate(:event, post: first_post, name: "Monaco Grand Prix", original_starts_at: "2026-05-24 13:00")
+      Fabricate(
+        :event,
+        post: first_post,
+        name: "Monaco Grand Prix",
+        original_starts_at: "2026-05-24 13:00",
+      )
     end
 
     before do
@@ -292,7 +299,11 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
         post "/event-duplicator/duplicate.json",
              params: {
                items: [
-                 { topic_id: topic.id, starts_at: "2027-05-24T13:00:00Z", title: "Monaco Grand Prix 2027" },
+                 {
+                   topic_id: topic.id,
+                   starts_at: "2027-05-24T13:00:00Z",
+                   title: "Monaco Grand Prix 2027",
+                 },
                ],
              }
 
@@ -318,7 +329,9 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
         expect(json["duplicated"]).to be_empty
         expect(json["skipped"].first["reason"]).to eq("already_duplicated")
         expect(json["skipped"].first["existing_duplicate_topic_id"]).to eq(duplicate_topic.id)
-        expect(json["skipped"].first["existing_duplicate_topic_url"]).to eq("/t/#{duplicate_topic.id}")
+        expect(json["skipped"].first["existing_duplicate_topic_url"]).to eq(
+          "/t/#{duplicate_topic.id}",
+        )
       end
     end
 
@@ -334,7 +347,9 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
         expect(response.status).to eq(200)
         json = response.parsed_body
         expect(json["duplicated"]).to be_empty
-        expect(json["skipped"]).to contain_exactly(a_hash_including("topic_id" => topic.id, "reason" => "unauthorized"))
+        expect(json["skipped"]).to contain_exactly(
+          a_hash_including("topic_id" => topic.id, "reason" => "unauthorized"),
+        )
       end
     end
 
@@ -350,7 +365,9 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
         expect(response.status).to eq(200)
         json = response.parsed_body
         expect(json["duplicated"]).to be_empty
-        expect(json["skipped"]).to contain_exactly(a_hash_including("topic_id" => topic.id, "reason" => "unauthorized"))
+        expect(json["skipped"]).to contain_exactly(
+          a_hash_including("topic_id" => topic.id, "reason" => "unauthorized"),
+        )
       end
     end
 

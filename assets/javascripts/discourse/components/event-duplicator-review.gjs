@@ -1,8 +1,8 @@
 import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
-import { action } from "@ember/object";
 import { fn } from "@ember/helper";
 import { on } from "@ember/modifier";
+import { action } from "@ember/object";
 import { service } from "@ember/service";
 import DButton from "discourse/ui-kit/d-button";
 import { i18n } from "discourse-i18n";
@@ -78,8 +78,8 @@ export default class EventDuplicatorReview extends Component {
         <tr>
           <th>
             <input
-              type="checkbox"
               checked={{this.allSelected}}
+              type="checkbox"
               {{on "change" this.toggleAllSelected}}
             />
           </th>
@@ -89,8 +89,8 @@ export default class EventDuplicatorReview extends Component {
           {{#if this.showTbdColumn}}
             <th>
               <input
-                type="checkbox"
                 checked={{this.allTbd}}
+                type="checkbox"
                 {{on "change" this.toggleAllTbd}}
               />
               {{this.tbdAnnotationText}}
@@ -103,18 +103,18 @@ export default class EventDuplicatorReview extends Component {
           <tr>
             <td>
               <input
-                type="checkbox"
                 checked={{item.isSelected}}
                 disabled={{item.justDuplicated}}
+                type="checkbox"
                 {{on "change" (fn this.toggleSelected item.topic.id)}}
               />
             </td>
             <td>
               <input
-                type="text"
                 class="event-duplicator-title"
-                value={{item.title}}
                 size={{item.titleSize}}
+                type="text"
+                value={{item.title}}
                 {{on "change" (fn this.setTitle item.topic.id)}}
               />
               {{#if item.justDuplicated}}
@@ -142,8 +142,8 @@ export default class EventDuplicatorReview extends Component {
             {{#if this.showTbdColumn}}
               <td>
                 <input
-                  type="checkbox"
                   checked={{item.tbd}}
+                  type="checkbox"
                   {{on "change" (fn this.toggleTbd item.topic.id)}}
                 />
               </td>
@@ -160,7 +160,7 @@ export default class EventDuplicatorReview extends Component {
     </table>
 
     <DButton
-      @class="btn-primary"
+      class="btn-primary"
       @action={{this.confirm}}
       @isLoading={{@isDuplicating}}
       @label="event_duplicator.review.confirm"

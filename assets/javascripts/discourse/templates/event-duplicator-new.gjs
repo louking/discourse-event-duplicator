@@ -1,8 +1,8 @@
 import { on } from "@ember/modifier";
 import CategoryChooser from "discourse/select-kit/components/category-chooser";
 import TagChooser from "discourse/select-kit/components/tag-chooser";
-import DButton from "discourse/ui-kit/d-button";
 import { not } from "discourse/truth-helpers";
+import DButton from "discourse/ui-kit/d-button";
 import { i18n } from "discourse-i18n";
 
 export default <template>
@@ -12,17 +12,17 @@ export default <template>
     <div class="control-group">
       <label>{{i18n "event_duplicator.new.category"}}</label>
       <CategoryChooser
-        @value={{@controller.categoryId}}
         @onChange={{@controller.setCategoryId}}
+        @value={{@controller.categoryId}}
       />
     </div>
 
     <div class="control-group">
       <label>{{i18n "event_duplicator.new.tags"}}</label>
       <TagChooser
-        @tags={{@controller.tags}}
         @categoryId={{@controller.categoryId}}
         @onChange={{@controller.setTags}}
+        @tags={{@controller.tags}}
       />
     </div>
 
@@ -36,9 +36,9 @@ export default <template>
         />
         {{#if @controller.startsAfter}}
           <DButton
+            class="btn-flat"
             @action={{@controller.clearStartsAfter}}
             @label="event_duplicator.new.clear_date"
-            @class="btn-flat"
           />
         {{/if}}
       </div>
@@ -54,16 +54,16 @@ export default <template>
         />
         {{#if @controller.startsBefore}}
           <DButton
+            class="btn-flat"
             @action={{@controller.clearStartsBefore}}
             @label="event_duplicator.new.clear_date"
-            @class="btn-flat"
           />
         {{/if}}
       </div>
     </div>
 
     <DButton
-      @class="btn-primary"
+      class="btn-primary"
       @action={{@controller.proceed}}
       @disabled={{not @controller.canProceed}}
       @label="event_duplicator.new.next"

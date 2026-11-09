@@ -30,10 +30,17 @@ after_initialize do
     object.topic.first_post&.event.present?
   end
 
-  register_topic_custom_field_type(
-    DiscourseEventDuplicator::DuplicationTracker::FIELD_NAME,
-    :json,
-  )
+  # Whether the current user is in one of `event_duplicator_allowed_groups`,
+  # computed server-side so the frontend can hide its entry points. The
+  # frontend used to intersect `currentUser.groups` itself, but Discourse
+  # deprecated that in Aug 2026 (it's now `visibleGroups`, and may not list
+  # all of a user's memberships). Same check as the controller's
+  # `can_duplicate_into?`.
+  add_to_serializer(:current_user, :event_duplicator_in_allowed_groups) do
+    object.in_any_groups?(SiteSetting.event_duplicator_allowed_groups_map)
+  end
+
+  register_topic_custom_field_type(DiscourseEventDuplicator::DuplicationTracker::FIELD_NAME, :json)
   register_topic_custom_field_type(
     DiscourseEventDuplicator::DuplicationTracker::SOURCE_FIELD_NAME,
     :json,
@@ -66,7 +73,8 @@ after_initialize do
   # discourse-calendar being present. Discourse core renamed that plugin to
   # "discourse-events" in Aug 2026 (and its DiscoursePostEvent::Event model to
   # DiscourseEvents::Events::Event), so accept either name.
-  unless Discourse.plugins.any? { |plugin| %w[discourse-events discourse-calendar].include?(plugin.name) }
+  events_plugin_names = %w[discourse-events discourse-calendar]
+  unless Discourse.plugins.any? { |plugin| events_plugin_names.include?(plugin.name) }
     Rails.logger.warn(
       "[#{DiscourseEventDuplicator::PLUGIN_NAME}] The discourse-events (formerly discourse-calendar) plugin " \
         "is required but was not found. " \

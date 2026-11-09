@@ -20,12 +20,7 @@ module ::DiscourseEventDuplicator
 
     def call
       scope =
-        Topic
-          .listable_topics
-          .secured(@guardian)
-          .joins(:tags)
-          .where(tags: { name: @tags })
-          .distinct
+        Topic.listable_topics.secured(@guardian).joins(:tags).where(tags: { name: @tags }).distinct
       scope = scope.where(category_id: @category.id) if @category
       scope = scope.includes(first_post: :event)
 

@@ -7,7 +7,9 @@ RSpec.describe DiscourseEventDuplicator::TopicDuplicator do
   fab!(:category)
   fab!(:tag) { Fabricate(:tag, name: "grand-prix") }
 
-  fab!(:source_topic) { Fabricate(:topic, category: category, tags: [tag], title: "Monaco Grand Prix") }
+  fab!(:source_topic) do
+    Fabricate(:topic, category: category, tags: [tag], title: "Monaco Grand Prix")
+  end
   fab!(:source_post) { Fabricate(:post, topic: source_topic) }
   fab!(:source_event) do
     Fabricate(
@@ -29,20 +31,23 @@ RSpec.describe DiscourseEventDuplicator::TopicDuplicator do
   it "reuses the source topic's title despite Discourse's default duplicate-title check" do
     expect(SiteSetting.allow_duplicate_topic_titles).to eq(false)
 
-    new_topic = described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at).call
+    new_topic =
+      described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at).call
 
     expect(new_topic.title).to eq("Monaco Grand Prix")
   end
 
   it "creates a new topic in the same category and tags" do
-    new_topic = described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at).call
+    new_topic =
+      described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at).call
 
     expect(new_topic.category_id).to eq(category.id)
     expect(new_topic.tags).to contain_exactly(tag)
   end
 
   it "creates the duplicate's event at the confirmed start date" do
-    new_topic = described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at).call
+    new_topic =
+      described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at).call
 
     event = new_topic.first_post.reload.event
     expect(event).to be_present
@@ -50,13 +55,15 @@ RSpec.describe DiscourseEventDuplicator::TopicDuplicator do
   end
 
   it "authors the new topic as the acting user, not the source topic's author" do
-    new_topic = described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at).call
+    new_topic =
+      described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at).call
 
     expect(new_topic.user_id).to eq(actor.id)
   end
 
   it "carries over the source event's name and timezone" do
-    new_topic = described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at).call
+    new_topic =
+      described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at).call
 
     event = new_topic.first_post.reload.event
     expect(event.name).to eq("Monaco Grand Prix")
@@ -92,7 +99,8 @@ RSpec.describe DiscourseEventDuplicator::TopicDuplicator do
     end
 
     it "leaves the end date unset when the source event had none" do
-      new_topic = described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at).call
+      new_topic =
+        described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at).call
 
       event = new_topic.first_post.reload.event
       expect(event.original_ends_at).to be_nil
@@ -129,7 +137,12 @@ RSpec.describe DiscourseEventDuplicator::TopicDuplicator do
 
     it "falls back to the source topic's title when blank" do
       new_topic =
-        described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at, title: "").call
+        described_class.new(
+          source_topic: source_topic,
+          actor: actor,
+          starts_at: starts_at,
+          title: "",
+        ).call
 
       expect(new_topic.title).to eq("Monaco Grand Prix")
     end
@@ -138,7 +151,12 @@ RSpec.describe DiscourseEventDuplicator::TopicDuplicator do
   describe "tbd: true" do
     it "appends the annotation to the duplicate's title and event name" do
       new_topic =
-        described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at, tbd: true).call
+        described_class.new(
+          source_topic: source_topic,
+          actor: actor,
+          starts_at: starts_at,
+          tbd: true,
+        ).call
 
       expect(new_topic.title).to eq("Monaco Grand Prix (date TBD)")
       expect(new_topic.first_post.reload.event.name).to eq("Monaco Grand Prix (date TBD)")
@@ -148,7 +166,12 @@ RSpec.describe DiscourseEventDuplicator::TopicDuplicator do
       source_topic.update!(title: "Monaco Grand Prix (date TBD)")
 
       new_topic =
-        described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at, tbd: true).call
+        described_class.new(
+          source_topic: source_topic,
+          actor: actor,
+          starts_at: starts_at,
+          tbd: true,
+        ).call
 
       expect(new_topic.title).to eq("Monaco Grand Prix (date TBD)")
     end
@@ -162,7 +185,12 @@ RSpec.describe DiscourseEventDuplicator::TopicDuplicator do
       SiteSetting.event_duplicator_tbd_annotation = "(TENTATIVE)"
 
       new_topic =
-        described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at, tbd: true).call
+        described_class.new(
+          source_topic: source_topic,
+          actor: actor,
+          starts_at: starts_at,
+          tbd: true,
+        ).call
 
       expect(new_topic.title).to eq("Monaco Grand Prix (TENTATIVE)")
     end
@@ -172,7 +200,8 @@ RSpec.describe DiscourseEventDuplicator::TopicDuplicator do
     it "strips a stale annotation carried over from the source topic" do
       source_topic.update!(title: "Monaco Grand Prix (date TBD)")
 
-      new_topic = described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at).call
+      new_topic =
+        described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at).call
 
       expect(new_topic.title).to eq("Monaco Grand Prix")
     end

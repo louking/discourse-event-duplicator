@@ -26,15 +26,10 @@ export function canDuplicateEvents(currentUser, siteSettings) {
     return false;
   }
 
-  const allowedGroupIds = (siteSettings.event_duplicator_allowed_groups || "")
-    .split("|")
-    .filter(Boolean)
-    .map(Number);
-
-  if (!allowedGroupIds.length) {
-    return false;
-  }
-
-  const userGroupIds = (currentUser.groups || []).map((group) => group.id);
-  return allowedGroupIds.some((id) => userGroupIds.includes(id));
+  // Group membership in `event_duplicator_allowed_groups` is checked
+  // server-side (see plugin.rb's current_user serializer attribute). The
+  // client can't do it reliably: Discourse deprecated `currentUser.groups`
+  // in Aug 2026, and its replacement `visibleGroups` may not list all of a
+  // user's memberships.
+  return !!currentUser.event_duplicator_in_allowed_groups;
 }

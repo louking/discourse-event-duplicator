@@ -1,6 +1,6 @@
 import { apiInitializer } from "discourse/lib/api";
 import { i18n } from "discourse-i18n";
-import { canDuplicateEvents } from "../lib/can-duplicate-events";
+import { canDuplicateEvents } from "../lib/can-duplicate-events.js";
 
 export default apiInitializer((api) => {
   const currentUser = api.getCurrentUser();

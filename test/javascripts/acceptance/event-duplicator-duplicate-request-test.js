@@ -16,7 +16,7 @@ import { acceptance } from "discourse/tests/helpers/qunit-helpers";
 acceptance("Event Duplicator - duplicate request body", function (needs) {
   needs.user({
     can_create_discourse_post_event: true,
-    groups: [{ id: 3, name: "staff" }],
+    event_duplicator_in_allowed_groups: true,
   });
   needs.settings({
     event_duplicator_enabled: true,
@@ -55,7 +55,11 @@ acceptance("Event Duplicator - duplicate request body", function (needs) {
     await visit("/event-duplicator/review?topic_id=9001");
     await click(".btn-primary");
 
-    assert.ok(capturedRequest, "the duplicate request was sent");
+    assert.notStrictEqual(
+      capturedRequest,
+      undefined,
+      "the duplicate request was sent"
+    );
     assert.true(
       capturedRequest.requestHeaders["Content-Type"].includes(
         "application/json"

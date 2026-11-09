@@ -1,8 +1,8 @@
 import { click, currentURL, visit } from "@ember/test-helpers";
 import { test } from "qunit";
 import { cloneJSON } from "discourse/lib/object";
-import { acceptance } from "discourse/tests/helpers/qunit-helpers";
 import topicFixtures from "discourse/tests/fixtures/topic";
+import { acceptance } from "discourse/tests/helpers/qunit-helpers";
 
 const SIDEBAR_LINK = ".sidebar-section-link[data-link-name='event-duplicator']";
 
@@ -55,7 +55,7 @@ function withTopicPage(
 acceptance("Event Duplicator - entry points (allowed user)", function (needs) {
   needs.user({
     can_create_discourse_post_event: true,
-    groups: [{ id: 3, name: "staff" }],
+    event_duplicator_in_allowed_groups: true,
   });
   needs.settings({
     event_duplicator_enabled: true,
@@ -98,10 +98,10 @@ acceptance("Event Duplicator - entry points (allowed user)", function (needs) {
     await click(".toggle-admin-menu");
     await click(".event-duplicator-duplicate-topic");
 
-    assert.ok(currentURL().startsWith("/event-duplicator/review"));
-    assert.ok(currentURL().includes("topic_id=9001"));
-    assert.notOk(currentURL().includes("category_id="));
-    assert.notOk(currentURL().includes("tags="));
+    assert.true(currentURL().startsWith("/event-duplicator/review"));
+    assert.true(currentURL().includes("topic_id=9001"));
+    assert.false(currentURL().includes("category_id="));
+    assert.false(currentURL().includes("tags="));
   });
 });
 
@@ -111,7 +111,7 @@ acceptance(
     needs.user({
       admin: true,
       can_create_discourse_post_event: true,
-      groups: [{ id: 3, name: "staff" }],
+      event_duplicator_in_allowed_groups: true,
     });
     needs.settings({
       event_duplicator_enabled: false,
@@ -136,7 +136,7 @@ acceptance(
   function (needs) {
     needs.user({
       can_create_discourse_post_event: true,
-      groups: [{ id: 14, name: "some-other-group" }],
+      event_duplicator_in_allowed_groups: false,
     });
     needs.settings({
       event_duplicator_enabled: true,
@@ -161,7 +161,7 @@ acceptance(
   function (needs) {
     needs.user({
       can_create_discourse_post_event: false,
-      groups: [{ id: 3, name: "staff" }],
+      event_duplicator_in_allowed_groups: true,
     });
     needs.settings({
       event_duplicator_enabled: true,
@@ -181,7 +181,7 @@ acceptance(
   function (needs) {
     needs.user({
       can_create_discourse_post_event: true,
-      groups: [{ id: 3, name: "staff" }],
+      event_duplicator_in_allowed_groups: true,
     });
     needs.settings({
       event_duplicator_enabled: true,
@@ -204,7 +204,7 @@ acceptance(
   function (needs) {
     needs.user({
       can_create_discourse_post_event: true,
-      groups: [{ id: 3, name: "staff" }],
+      event_duplicator_in_allowed_groups: true,
     });
     needs.settings({
       event_duplicator_enabled: true,
@@ -242,7 +242,7 @@ acceptance(
       moderator: false,
       trust_level: 1,
       can_create_discourse_post_event: true,
-      groups: [{ id: 20, name: "race-organizers" }],
+      event_duplicator_in_allowed_groups: true,
     });
     needs.settings({
       event_duplicator_enabled: true,

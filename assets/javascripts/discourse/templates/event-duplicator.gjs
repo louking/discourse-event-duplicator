@@ -1,6 +1,6 @@
 import { on } from "@ember/modifier";
-import EventDuplicatorReview from "../components/event-duplicator-review";
 import { i18n } from "discourse-i18n";
+import EventDuplicatorReview from "../components/event-duplicator-review.gjs";
 
 export default <template>
   {{! Review/edit step: shown after picking a category+tags (series) or a
@@ -12,12 +12,12 @@ export default <template>
       <label>{{i18n "event_duplicator.review.date_strategy"}}</label>
       <select {{on "change" @controller.setDateStrategy}}>
         <option
-          value="calendar_date"
           selected={{@controller.isCalendarDateStrategy}}
+          value="calendar_date"
         >{{i18n "event_duplicator.date_strategy.calendar_date"}}</option>
         <option
-          value="nth_weekday_of_month"
           selected={{@controller.isNthWeekdayOfMonthStrategy}}
+          value="nth_weekday_of_month"
         >{{i18n "event_duplicator.date_strategy.nth_weekday_of_month"}}</option>
       </select>
     </div>
@@ -25,18 +25,18 @@ export default <template>
     <div class="control-group event-duplicator-shift-months">
       <label>{{i18n "event_duplicator.review.shift_months"}}</label>
       <input
-        type="number"
         min="1"
+        type="number"
         value={{@model.shiftMonths}}
         {{on "change" @controller.setShiftMonths}}
       />
     </div>
 
     <EventDuplicatorReview
-      @topics={{@model.topics}}
       @isDuplicating={{@controller.isDuplicating}}
       @onConfirm={{@controller.confirmDuplication}}
       @result={{@controller.result}}
+      @topics={{@model.topics}}
     />
 
     {{#if @controller.result.skipped.length}}
