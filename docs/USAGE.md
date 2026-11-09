@@ -7,7 +7,7 @@ instead; this doc doesn't assume you're a developer.
 ## What it's for
 
 If your community runs recurring calendar events (a race series, a monthly meetup, a season of matches —
-anything created with the `discourse-calendar` `[event]` block), you eventually need a new topic for next
+anything created with the discourse-events (formerly discourse-calendar) `[event]` block), you eventually need a new topic for next
 year's (or next month's) occurrence. This plugin automates that: it finds the existing event topic(s), works
 out a sensible date for the next occurrence, and creates the new topic/event for you — after you've had a
 chance to review and adjust the details.

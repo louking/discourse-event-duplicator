@@ -1,7 +1,8 @@
 # discourse-event-duplicator
 
 A [Discourse](https://www.discourse.org/) plugin that lets authorized users duplicate calendar events/topics
-(created via [discourse-calendar](https://github.com/discourse/discourse-calendar)) into a new time period.
+(created via the [discourse-events](https://github.com/discourse/discourse/tree/main/plugins/discourse-events)
+plugin, formerly discourse-calendar) into a new time period.
 
 ## Status
 
@@ -23,14 +24,15 @@ high-level.
 
 ## Requirements
 
-- [discourse-calendar](https://github.com/discourse/discourse-calendar) must be installed and enabled. This
-  plugin duplicates events by going through discourse-calendar's own `[event ...]` post markup and
-  `DiscoursePostEvent::Event` model, not by inventing separate date storage.
+- [discourse-events](https://github.com/discourse/discourse/tree/main/plugins/discourse-events) must be
+  enabled. It ships with Discourse core. Before Aug 2026 it was the separate discourse-calendar plugin, and
+  this plugin works with either. It duplicates events through that plugin's own `[event ...]` post markup and
+  event model, not by inventing separate date storage.
 - Category permissions are necessary but not sufficient for authorization: a user must both have permission
   to create topics in the target category *and* belong to one of the groups in the
   `event_duplicator_allowed_groups` site setting (default: staff only). See
   [docs/USAGE.md](docs/USAGE.md#site-settings) for the full settings reference.
-- Tested against Discourse 2026.7.0. Not verified on earlier releases.
+- Tested against Discourse 2026.7.0 and 2026.11.0. Not verified on earlier releases.
 
 ## Installation
 
@@ -42,12 +44,14 @@ plugin. See the [Discourse plugin installation guide](https://meta.discourse.org
 ```bash
 # from a discourse core checkout, with this repo cloned/symlinked into plugins/discourse-event-duplicator
 bin/rspec plugins/discourse-event-duplicator/spec
-bundle exec rubocop plugins/discourse-event-duplicator
 bin/rake plugin:qunit[discourse-event-duplicator]
 
-# from this repo's own directory (JS tooling is self-contained via package.json)
-yarn eslint assets/javascripts test/javascripts
-npx prettier --check "assets/**/*.{js,gjs,hbs,scss}" "test/**/*.{js,gjs}"
+# from this repo's own directory (tooling follows discourse-plugin-skeleton: pnpm + bundler)
+pnpm install && bundle install
+pnpm lint                     # stylelint, eslint, prettier, tsc
+pnpm lint:fix                 # autofix what can be fixed
+bundle exec rubocop .
+bundle exec stree check Gemfile $(git ls-files '*.rb')
 ```
 
 ### Running all checks before pushing

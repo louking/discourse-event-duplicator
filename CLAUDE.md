@@ -30,16 +30,21 @@ bin/rspec plugins/discourse-event-duplicator/spec/path/to/spec.rb:LINE          
 bundle exec rubocop plugins/discourse-event-duplicator                                # Ruby lint (rubocop-discourse rules)
 ```
 
-From this repo's own directory (JS tooling is self-contained via `package.json`):
+From this repo's own directory. Tooling follows `discourse/discourse-plugin-skeleton` (pnpm,
+`@discourse/lint-configs`, `tsconfig.json`, a committed `Gemfile.lock` with rubocop-discourse + syntax_tree),
+migrated from yarn/ESLint 8 for GitHub issue #20 after Discourse's shared CI dropped yarn from its image:
 
 ```bash
-yarn eslint assets/javascripts test/javascripts   # or: npm run lint
-npx prettier --check "assets/**/*.{js,gjs,hbs,scss}" "test/**/*.{js,gjs}"
+pnpm install && bundle install
+pnpm lint          # lint:css (stylelint), lint:js (eslint), lint:prettier, lint:types (tsc)
+pnpm lint:fix      # autofix
+bundle exec rubocop . && bundle exec stree check Gemfile $(git ls-files '*.rb')   # `stree write` to fix
 ```
 
-`.gjs` formatting/linting needs `prettier-plugin-ember-template-tag` (a devDependency here, wired up in
-`.prettierrc.cjs`) — without it, `prettier --check`/`--write` errors with "No parser could be inferred" on
-any `.gjs` file rather than silently skipping it.
+The skeleton's own updater (`pnpx @discourse/update-skeleton@latest`) does this sync automatically but
+overwrites managed configs. The first migration was done by hand, copying the skeleton's config files and its
+`pnpm-lock.yaml` (a fresh `pnpm install` without that lockfile fails the strict peer-dependency check on
+typescript 7). `tsconfig.json`'s `paths` use this plugin's name.
 
 QUnit tests live in `test/javascripts/` (`unit/`, `components/`, `acceptance/` — auto-discovered by
 Discourse's plugin test convention, no extra config needed). Run from the Discourse core checkout:
@@ -59,14 +64,14 @@ script on `PATH` pointing at it (with `LD_LIBRARY_PATH` set per the headless-bro
 `dev_environment_discourse_core` memory) satisfies the checker without a real install.
 
 CI (`.github/workflows/discourse-plugin.yml`) delegates to Discourse's shared `discourse-plugin.yml`
-reusable workflow, which runs the Ruby and JS lints above plus `ember-template-lint` on `.hbs` files, *and*
+reusable workflow, which runs the Ruby and JS lints above, *and*
 auto-detects and runs this repo's actual test types against a real Discourse core + Postgres + Redis — this
 now includes both the RSpec backend suite in `spec/` and the QUnit suite in `test/javascripts/`. This means
 every push/PR actually runs both for real, not just lint — keep both green locally before pushing, since CI
 will catch what lint alone can't (e.g. wrong Guardian/Category API usage that only fails at runtime, or a
 frontend regression only visible once the app actually boots and renders).
 
-**Run `bin/local-ci` before pushing.** It runs the same checks as CI (eslint, prettier, rubocop,
+**Run `bin/local-ci` before pushing.** It runs the same checks as CI (pnpm lint, rubocop + syntax_tree,
 `zeitwerk:check`, a dev-mode reload check, and the RSpec suite) against a local Discourse core checkout, in
 ~20 seconds — versus several minutes for CI's from-scratch spin-up. It assumes a Discourse core checkout at
 `~/discourse` with this plugin symlinked into `plugins/discourse-event-duplicator`; override with the
@@ -231,9 +236,12 @@ request, since items can span categories.
 
 **Frontend (`assets/javascripts/discourse/`)**
 - `lib/can-duplicate-events.js` — `canDuplicateEvents(currentUser, siteSettings)` first checks
-  `siteSettings.event_duplicator_enabled` itself, then mirrors the backend's group-membership half of
-  `can_duplicate_into?` (intersects `currentUser.groups` against the pipe-separated
-  `siteSettings.event_duplicator_allowed_groups`). The category-permission half is handled separately by
+  `siteSettings.event_duplicator_enabled` itself, then reads the backend's group-membership half of
+  `can_duplicate_into?` from `currentUser.event_duplicator_in_allowed_groups` (a `current_user` serializer
+  attribute in `plugin.rb`). It used to intersect `currentUser.groups` against the setting client-side, but
+  Discourse deprecated `user.groups` in Aug 2026 (now `visibleGroups`, which may not list every membership,
+  and is a read-only getter, so tests can't set `groups:` on the user any more); see GitHub issue #20. The
+  category-permission half is handled separately by
   reusing `category.canCreateTopic` / `CategoryChooser`'s default `FULL`-permission filtering, rather than
   reimplementing that check in JS. The `event_duplicator_enabled` check is necessary even though
   `enabled_site_setting :event_duplicator_enabled` in `plugin.rb` already gates the plugin's backend
@@ -502,6 +510,19 @@ tests" under Commands above for the Chrome/sandbox setup this needs. `bin/local-
 (via `package.json`'s `lint` script and the `prettier` glob) but does not run the QUnit suite itself.
 
 ## Key external dependency
+
+**Renamed upstream (GitHub issue #20):** Discourse core renamed `discourse-calendar` to `discourse-events` in
+Aug 2026 (discourse/discourse#42021, #42650). `DiscoursePostEvent::Event` became
+`DiscourseEvents::Events::Event`, the plugin directory/name became `plugins/discourse-events` /
+`"discourse-events"`, and the `calendar_enabled` setting became `discourse_events_enabled`. Unchanged: the
+`[event ...]` markup, `post.event`, `Guardian#can_create_discourse_post_event?`, the
+`can_create_discourse_post_event` current-user attribute, and the `discourse_post_event_*` settings. This
+plugin supports both old and new Discourse: **never name the event model's constant** (use `event.class`, as
+`TopicDuplicator#event_raw` does for `statuses`), `plugin.rb` accepts either plugin name, and specs call
+`enable_events_plugin!` (`spec/plugin_helper.rb`) instead of setting either enable flag directly. The rest of
+this file still says "discourse-calendar" and `DiscoursePostEvent::Event`; read those as the renamed plugin
+and model on current Discourse. CI now also runs weekly (`schedule:` in the workflow) against latest
+Discourse, so the next upstream break shows up as a failed Monday run.
 
 `discourse-calendar` owns event data via **`DiscoursePostEvent::Event`** (`original_starts_at`,
 `original_ends_at`, `timezone`, `all_day`, `recurrence*`, accessible off a post as `post.event`) — *not* via
