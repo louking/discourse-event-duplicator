@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-09
+
+### Fixed
+
+- Duplicating an event did nothing on Discourse releases after Aug 2026, when Discourse renamed discourse-calendar to discourse-events. The plugin now works with either name. A failed duplication now shows the server's error instead of failing silently ([#20](https://github.com/louking/discourse-event-duplicator/issues/20)).
+
+### Changed
+
+- The sidebar link and topic button now get the allowed-groups check from the server instead of reading the user's groups in the browser, which Discourse deprecated in Aug 2026 ([#20](https://github.com/louking/discourse-event-duplicator/issues/20)).
+- Development tooling moved from yarn to pnpm, following Discourse's current plugin skeleton ([#20](https://github.com/louking/discourse-event-duplicator/issues/20)).
+- CI runs weekly against the latest Discourse, so upstream changes that break this plugin are caught even when this repo hasn't changed ([#20](https://github.com/louking/discourse-event-duplicator/issues/20)).
+
 ## [1.1.0] - 2026-08-01
 
 ### Added
@@ -31,7 +43,8 @@ First stable release. Backend, frontend, and automated test coverage (RSpec + QU
 - Post-duplication confirmation: successfully duplicated rows link to their new topic and are disabled from resubmission; failures are reported per-item without aborting the rest of the batch.
 - Authorization gated on category permissions, an `event_duplicator_allowed_groups` site setting, and discourse-calendar's own event-creation permission.
 
-[Unreleased]: https://github.com/louking/discourse-event-duplicator/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/louking/discourse-event-duplicator/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/louking/discourse-event-duplicator/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/louking/discourse-event-duplicator/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/louking/discourse-event-duplicator/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/louking/discourse-event-duplicator/releases/tag/v1.0.0
