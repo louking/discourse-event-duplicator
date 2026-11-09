@@ -2,6 +2,7 @@ import Controller from "@ember/controller";
 import { action } from "@ember/object";
 import { tracked } from "@glimmer/tracking";
 import { service } from "@ember/service";
+import { popupAjaxError } from "discourse/lib/ajax-error";
 
 export default class EventDuplicatorController extends Controller {
   @service eventDuplicator;
@@ -116,6 +117,11 @@ export default class EventDuplicatorController extends Controller {
           title: titlesByTopicId.get(entry.topic_id),
         })),
       };
+    } catch (error) {
+      // Without this, a server error (e.g. the NameError from discourse-
+      // calendar's Aug 2026 rename) just stopped the spinner and showed
+      // nothing, which looked like the request had silently succeeded.
+      popupAjaxError(error);
     } finally {
       this.isDuplicating = false;
     }

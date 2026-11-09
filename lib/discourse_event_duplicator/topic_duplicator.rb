@@ -95,7 +95,11 @@ module ::DiscourseEventDuplicator
         # topic title has been changed.
         "name" => event&.name && annotate(@title || event.name),
         "timezone" => event&.timezone,
-        "status" => event && DiscoursePostEvent::Event.statuses[event.status].to_s,
+        # `event.class` rather than naming the model's constant: Discourse
+        # core renamed DiscoursePostEvent::Event to
+        # DiscourseEvents::Events::Event in Aug 2026, and a hardcoded name
+        # raised NameError on every duplication after that.
+        "status" => event && event.class.statuses[event.status].to_s,
         "recurrence" => event&.recurrence,
         "recurrence-until" =>
           event&.recurrence_until && format_time(event.recurrence_until, timezone, false),

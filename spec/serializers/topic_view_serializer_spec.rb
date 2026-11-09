@@ -12,7 +12,7 @@ RSpec.describe TopicViewSerializer do
 
   before do
     SiteSetting.event_duplicator_enabled = true
-    SiteSetting.calendar_enabled = true
+    enable_events_plugin!
     SiteSetting.discourse_post_event_enabled = true
   end
 

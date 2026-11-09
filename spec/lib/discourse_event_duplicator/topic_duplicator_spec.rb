@@ -22,7 +22,7 @@ RSpec.describe DiscourseEventDuplicator::TopicDuplicator do
   let(:starts_at) { Time.find_zone("Europe/Monaco").parse("2027-05-23 13:00") }
 
   before do
-    SiteSetting.calendar_enabled = true
+    enable_events_plugin!
     SiteSetting.discourse_post_event_enabled = true
   end
 

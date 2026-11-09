@@ -33,13 +33,13 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
     # Default is staff-only; these specs test the AND with category
     # permissions using a dedicated group instead of granting staff.
     SiteSetting.event_duplicator_allowed_groups = allowed_group.id.to_s
-    # discourse-calendar's own `calendar_enabled` is its `enabled_site_setting`
+    # discourse-calendar's own enabled_site_setting (see enable_events_plugin!)
     # -- Plugin::Instance#add_to_class wraps every method it defines (not just
     # `on(...)` hooks, see the DuplicationTracker spec comments) to silently
     # return nil unless the owning plugin is enabled, so
     # `guardian.can_create_discourse_post_event?` would otherwise always be
     # nil/falsy here regardless of group membership.
-    SiteSetting.calendar_enabled = true
+    enable_events_plugin!
     SiteSetting.discourse_post_event_allowed_on_groups = calendar_group.id.to_s
 
     restricted_group.add(member)
@@ -58,7 +58,7 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
     context "when the user has category access and is in the allowed group" do
       before { sign_in(member) }
 
-      it "succeeds" do
+      it "returns the tagged topics" do
         get "/event-duplicator/tags/grand-prix/topics.json", params: { category_id: category.id }
 
         expect(response.status).to eq(200)
@@ -251,7 +251,7 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
     end
 
     before do
-      # calendar_enabled is already set in the top-level `before`;
+      # enable_events_plugin! already ran in the top-level `before`;
       # discourse_post_event_enabled additionally gates the actual
       # `[event]` post-sync machinery TopicDuplicator relies on here.
       SiteSetting.discourse_post_event_enabled = true

@@ -59,14 +59,17 @@ after_initialize do
     DiscourseEventDuplicator::DuplicationTracker.restore!(duplicate_topic: topic)
   end
 
-  # discourse-calendar owns event data via DiscoursePostEvent::Event
+  # discourse-calendar owns event data via its Event model
   # (original_starts_at/original_ends_at, populated by parsing an [event]
   # block out of a post's raw text), not via plugin-local custom fields --
   # this plugin must read/write through that, so it depends on
-  # discourse-calendar being present.
-  unless Discourse.plugins.any? { |plugin| plugin.name == "discourse-calendar" }
+  # discourse-calendar being present. Discourse core renamed that plugin to
+  # "discourse-events" in Aug 2026 (and its DiscoursePostEvent::Event model to
+  # DiscourseEvents::Events::Event), so accept either name.
+  unless Discourse.plugins.any? { |plugin| %w[discourse-events discourse-calendar].include?(plugin.name) }
     Rails.logger.warn(
-      "[#{DiscourseEventDuplicator::PLUGIN_NAME}] The discourse-calendar plugin is required but was not found. " \
+      "[#{DiscourseEventDuplicator::PLUGIN_NAME}] The discourse-events (formerly discourse-calendar) plugin " \
+        "is required but was not found. " \
         "Event duplication will not function correctly without it.",
     )
   end
