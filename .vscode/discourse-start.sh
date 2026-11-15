@@ -10,7 +10,9 @@ pkill -f 'node ./bin/dev' 2>/dev/null || true
 pkill -f 'rolldown.mjs' 2>/dev/null || true
 sleep 1
 
-DISCOURSE_DISABLE_BROWSER_SANDBOX=1 nohup node ./bin/dev > /tmp/discourse-dev.log 2>&1 &
+# setsid puts bin/dev in its own session, so the task terminal's SIGHUP on exit doesn't reach
+# Pitchfork/rolldown (nohup alone only covers the top-level node process, not its children).
+DISCOURSE_DISABLE_BROWSER_SANDBOX=1 setsid nohup node ./bin/dev > /tmp/discourse-dev.log 2>&1 < /dev/null &
 disown
 
 sleep 2
