@@ -64,6 +64,11 @@ ordinary topic, even if you otherwise have permission to duplicate events.
 
 Each row is one event topic that will be duplicated if you leave it checked.
 
+A duplicate is a copy of the source topic's first post. Its text, images and links carry over, along with the
+event's other settings (location, URL, reminders and so on). Only the event's dates and name change, as set
+on this page. The source topic's replies are not copied. A topic whose first post has no event block is
+skipped rather than duplicated.
+
 - **Topic** — the duplicate's title, pre-filled with the source topic's title. Editable — useful if your
   source titles bake in a date or year (e.g. "Monaco Grand Prix 2026") that you'd want to change rather than
   carry forward unchanged.

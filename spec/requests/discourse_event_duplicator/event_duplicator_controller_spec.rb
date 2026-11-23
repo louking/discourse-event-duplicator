@@ -249,11 +249,13 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
     fab!(:topic) { Fabricate(:topic, category: category, title: "Monaco Grand Prix") }
     fab!(:first_post) { Fabricate(:post, topic: topic) }
     fab!(:event) do
-      Fabricate(
-        :event,
-        post: first_post,
-        name: "Monaco Grand Prix",
-        original_starts_at: "2026-05-24 13:00",
+      write_event_tag!(
+        Fabricate(
+          :event,
+          post: first_post,
+          name: "Monaco Grand Prix",
+          original_starts_at: "2026-05-24 13:00",
+        ),
       )
     end
 
@@ -281,6 +283,23 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
         new_topic = Topic.find(json["duplicated"].first["new_topic_id"])
         expect(new_topic.first_post.reload.event.original_starts_at).to eq_time(
           Time.zone.parse("2027-05-24T13:00:00Z"),
+        )
+      end
+
+      it "skips a topic whose first post has no [event] block" do
+        first_post.update_column(:raw, "Bring your own water.")
+
+        expect {
+          post "/event-duplicator/duplicate.json",
+               params: {
+                 items: [{ topic_id: topic.id, starts_at: "2027-05-24T13:00:00Z" }],
+               }
+        }.not_to change { Topic.count }
+
+        json = response.parsed_body
+        expect(json["duplicated"]).to be_empty
+        expect(json["skipped"]).to contain_exactly(
+          { "topic_id" => topic.id, "reason" => "source topic has no [event] block" },
         )
       end
 
@@ -382,11 +401,13 @@ RSpec.describe DiscourseEventDuplicator::EventDuplicatorController do
       fab!(:other_topic) { Fabricate(:topic, category: other_category, title: "Other Grand Prix") }
       fab!(:other_first_post) { Fabricate(:post, topic: other_topic) }
       fab!(:other_event) do
-        Fabricate(
-          :event,
-          post: other_first_post,
-          name: "Other Grand Prix",
-          original_starts_at: "2026-06-01 13:00",
+        write_event_tag!(
+          Fabricate(
+            :event,
+            post: other_first_post,
+            name: "Other Grand Prix",
+            original_starts_at: "2026-06-01 13:00",
+          ),
         )
       end
 

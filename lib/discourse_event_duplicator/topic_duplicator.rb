@@ -3,12 +3,26 @@
 module ::DiscourseEventDuplicator
   # Creates a duplicate of a calendar-event topic at the given (already
   # reviewed/confirmed) dates. Duplication works by creating a new topic
-  # whose first post contains an `[event ...]` raw block built from the
-  # source event's other attributes -- discourse-calendar's own
+  # whose first post is a copy of the source topic's first post, with the
+  # `[event ...]` tag's dates and name rewritten -- discourse-calendar's own
   # `on(:post_created)` hook then parses that block and creates the `Event`
   # row for us, so its validations, invitee handling, and topic-custom-field
   # sync all apply exactly as they would for a hand-authored event post.
   class TopicDuplicator
+    # Matches the opening `[event ...]` tag in a post's raw, capturing its
+    # attributes. Attribute values are double-quoted, as discourse-calendar's
+    # own composer builder writes them.
+    EVENT_TAG = /\[event((?:\s+[\w-]+="[^"]*")*)\s*\]/i
+    EVENT_ATTR = /([\w-]+)="([^"]*)"/
+
+    # Raised when the source post's raw has no `[event ...]` tag. Such a
+    # topic isn't an event topic, so it isn't duplicated.
+    class MissingEventTag < StandardError
+      def initialize(msg = "source topic has no [event] block")
+        super
+      end
+    end
+
     def initialize(source_topic:, actor:, starts_at:, tbd: false, title: nil)
       @source_topic = source_topic
       @actor = actor
@@ -22,7 +36,7 @@ module ::DiscourseEventDuplicator
         PostCreator.create!(
           @actor,
           title: annotate(effective_title),
-          raw: event_raw,
+          raw: duplicate_raw,
           category: @source_topic.category_id,
           tags: @source_topic.tags.map(&:name),
           archetype: Archetype.default,
@@ -80,34 +94,44 @@ module ::DiscourseEventDuplicator
       @tbd ? "#{base}#{suffix}" : base
     end
 
-    def event_raw
-      event = source_event
-      timezone = event&.timezone || "UTC"
-      all_day = event&.all_day || false
+    # The source post's raw with only the event tag rewritten, so the
+    # topic's own text and any event attributes this class doesn't know
+    # about (location, url, reminders, custom fields, ...) carry over. See
+    # GitHub issue #21.
+    def duplicate_raw
+      raw = @source_topic.first_post&.raw.to_s
+      match = raw.match(EVENT_TAG)
+      raise MissingEventTag if match.nil?
 
+      attrs = match[1].scan(EVENT_ATTR).to_h
+      attrs.merge!(date_attrs)
+      # A title override should carry through to the event's own name too,
+      # so the calendar widget doesn't keep showing the old name once the
+      # topic title has been changed.
+      if attrs["name"].present? || source_event&.name.present?
+        attrs["name"] = annotate(@title || attrs["name"].presence || source_event.name)
+      end
+
+      raw.sub(EVENT_TAG) { event_tag(attrs) }
+    end
+
+    def date_attrs
+      timezone = source_event&.timezone || "UTC"
+      all_day = source_event&.all_day || false
       ends_at = effective_ends_at
 
-      attrs = {
+      {
         "start" => format_time(@starts_at, timezone, all_day),
         "end" => ends_at && format_time(ends_at, timezone, all_day),
-        # A title override should carry through to the event's own name too,
-        # so the calendar widget doesn't keep showing the old name once the
-        # topic title has been changed.
-        "name" => event&.name && annotate(@title || event.name),
-        "timezone" => event&.timezone,
-        # `event.class` rather than naming the model's constant: Discourse
-        # core renamed DiscoursePostEvent::Event to
-        # DiscourseEvents::Events::Event in Aug 2026, and a hardcoded name
-        # raised NameError on every duplication after that.
-        "status" => event && event.class.statuses[event.status].to_s,
-        "recurrence" => event&.recurrence,
-        "recurrence-until" =>
-          event&.recurrence_until && format_time(event.recurrence_until, timezone, false),
-        "all-day" => all_day ? "true" : nil,
       }
+    end
 
-      parts = attrs.filter_map { |key, value| %(#{key}="#{value}") if value.present? }
-      "[event #{parts.join(" ")}]\n[/event]"
+    # Double quotes are dropped from values: a reviewer's title override
+    # flows into `name`, and a quote there would end the attribute early and
+    # let the rest of the title be read as other event attributes.
+    def event_tag(attrs)
+      parts = attrs.filter_map { |key, value| %(#{key}="#{value.delete('"')}") if value.present? }
+      "[event #{parts.join(" ")}]"
     end
 
     def format_time(time, timezone, all_day)

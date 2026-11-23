@@ -12,12 +12,14 @@ RSpec.describe DiscourseEventDuplicator::TopicDuplicator do
   end
   fab!(:source_post) { Fabricate(:post, topic: source_topic) }
   fab!(:source_event) do
-    Fabricate(
-      :event,
-      post: source_post,
-      name: "Monaco Grand Prix",
-      timezone: "Europe/Monaco",
-      original_starts_at: "2026-05-24 13:00",
+    write_event_tag!(
+      Fabricate(
+        :event,
+        post: source_post,
+        name: "Monaco Grand Prix",
+        timezone: "Europe/Monaco",
+        original_starts_at: "2026-05-24 13:00",
+      ),
     )
   end
 
@@ -76,13 +78,15 @@ RSpec.describe DiscourseEventDuplicator::TopicDuplicator do
     end
     fab!(:source_post_with_duration) { Fabricate(:post, topic: source_topic_with_duration) }
     fab!(:source_event_with_duration) do
-      Fabricate(
-        :event,
-        post: source_post_with_duration,
-        name: "Silverstone Grand Prix",
-        timezone: "Europe/London",
-        original_starts_at: "2026-05-24 13:00",
-        original_ends_at: "2026-05-24 15:00",
+      write_event_tag!(
+        Fabricate(
+          :event,
+          post: source_post_with_duration,
+          name: "Silverstone Grand Prix",
+          timezone: "Europe/London",
+          original_starts_at: "2026-05-24 13:00",
+          original_ends_at: "2026-05-24 15:00",
+        ),
       )
     end
 
@@ -205,5 +209,90 @@ RSpec.describe DiscourseEventDuplicator::TopicDuplicator do
 
       expect(new_topic.title).to eq("Monaco Grand Prix")
     end
+  end
+
+  describe "source post text" do
+    fab!(:source_topic_with_text) do
+      Fabricate(:topic, category: category, tags: [tag], title: "Belgian Spa Grand Prix")
+    end
+    fab!(:source_post_with_text) do
+      # update_column skips discourse-calendar's post validation and event
+      # sync; the event row is fabricated separately below.
+      Fabricate(:post, topic: source_topic_with_text).tap do |post|
+        post.update_column(:raw, <<~RAW.strip)
+          Registration opens in March.
+
+          [event start="2026-08-30 15:00" end="2026-08-30 17:00" name="Spa Grand Prix" timezone="Europe/Brussels" location="Circuit de Spa-Francorchamps"]
+          [/event]
+
+          See the [course map](https://example.com/map).
+        RAW
+      end
+    end
+    fab!(:source_event_with_text) do
+      Fabricate(
+        :event,
+        post: source_post_with_text,
+        name: "Spa Grand Prix",
+        timezone: "Europe/Brussels",
+        original_starts_at: "2026-08-30 15:00",
+        original_ends_at: "2026-08-30 17:00",
+      )
+    end
+
+    let(:spa_starts_at) { Time.find_zone("Europe/Brussels").parse("2027-08-29 15:00") }
+
+    def duplicate(**opts)
+      described_class.new(
+        source_topic: source_topic_with_text,
+        actor: actor,
+        starts_at: spa_starts_at,
+        **opts,
+      ).call
+    end
+
+    it "copies the text around the event block" do
+      raw = duplicate.first_post.raw
+
+      expect(raw).to start_with("Registration opens in March.\n\n[event ")
+      expect(raw).to end_with("[/event]\n\nSee the [course map](https://example.com/map).")
+    end
+
+    it "rewrites the event tag's dates and keeps its other attributes" do
+      raw = duplicate.first_post.raw
+
+      expect(raw).to include('start="2027-08-29 15:00"')
+      expect(raw).to include('end="2027-08-29 17:00"')
+      expect(raw).to include('location="Circuit de Spa-Francorchamps"')
+      expect(raw).not_to include("2026-08-30")
+    end
+
+    it "creates the duplicate's event from the rewritten tag" do
+      event = duplicate.first_post.reload.event
+
+      expect(event.original_starts_at).to eq_time(spa_starts_at)
+      expect(event.location).to eq("Circuit de Spa-Francorchamps")
+    end
+
+    it "applies the title override and tbd annotation to the tag's name" do
+      raw = duplicate(title: "Belgian Grand Prix", tbd: true).first_post.raw
+
+      expect(raw).to include('name="Belgian Grand Prix (date TBD)"')
+    end
+
+    it "drops double quotes from a title override so it can't add event attributes" do
+      raw = duplicate(title: 'Spa" location="Elsewhere').first_post.raw
+
+      expect(raw).to include('name="Spa location=Elsewhere"')
+      expect(raw).to include('location="Circuit de Spa-Francorchamps"')
+    end
+  end
+
+  it "raises instead of creating a topic when the source post has no event tag" do
+    source_post.update_column(:raw, "Bring your own water.")
+
+    expect {
+      described_class.new(source_topic: source_topic, actor: actor, starts_at: starts_at).call
+    }.to raise_error(described_class::MissingEventTag).and not_change { Topic.count }
   end
 end

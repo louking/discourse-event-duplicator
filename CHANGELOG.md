@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- A duplicated topic now copies the source topic's first post, not just its event. The event keeps its other settings, such as location and reminders, and only its dates and name change ([#21](https://github.com/louking/discourse-event-duplicator/issues/21)).
+
 ## [1.1.1] - 2026-11-09
 
 ### Fixed

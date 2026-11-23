@@ -103,8 +103,14 @@ plugin:qunit[discourse-event-duplicator]` from `~/discourse` separately before p
   optional category/date-range bounds, returns each matching topic exactly once (even if it carries multiple
   matching tags), scoped to topics that actually have a discourse-calendar event.
 - `lib/discourse_event_duplicator/topic_duplicator.rb` — creates the actual duplicate: a new topic whose
-  first post contains an `[event ...]` raw block built from the source event's attributes plus the
-  confirmed dates, created via `PostCreator` so discourse-calendar's own `on(:post_created)` hook creates the
+  first post is a copy of the source first post's raw with only the opening `[event ...]` tag rewritten
+  (`#duplicate_raw`: the source tag's attributes are kept, `start`/`end`/`name` replaced). Until GitHub issue
+  #21 it built the raw from scratch out of a few event attributes, which dropped the topic's text and any
+  attribute it didn't list (location, url, reminders, custom fields). If the source raw has no `[event ...]`
+  tag it raises `TopicDuplicator::MissingEventTag` and creates nothing; `#duplicate` reports that item in
+  `skipped`. A fabricated `:event` doesn't touch its post's raw, so specs that duplicate must call
+  `write_event_tag!(event)` (`spec/plugin_helper.rb`) to give the source post a real tag.
+  Goes through `PostCreator` so discourse-calendar's own `on(:post_created)` hook creates the
   `Event` row (see "Key external dependency" below). Passes `skip_validations: true` since a duplicate
   intentionally reuses the source topic's title, which would otherwise trip Discourse's default
   "no duplicate titles" check — this skips that and other generic topic/post content validations (redundant

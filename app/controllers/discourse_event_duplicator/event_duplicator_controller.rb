@@ -151,7 +151,9 @@ module ::DiscourseEventDuplicator
             new_topic_id: new_topic.id,
             new_topic_url: new_topic.relative_url,
           }
-        rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved => e
+        rescue ActiveRecord::RecordInvalid,
+               ActiveRecord::RecordNotSaved,
+               TopicDuplicator::MissingEventTag => e
           skipped << { topic_id: topic.id, reason: e.message }
         end
       end
