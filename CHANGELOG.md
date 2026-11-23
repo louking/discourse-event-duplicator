@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-11-23
+
+### Fixed
+
+- Duplicating a topic no longer fails with "source topic has no [event] block" when the event tag has unquoted or single-quoted attribute values, such as `status=public` ([#22](https://github.com/louking/discourse-event-duplicator/issues/22)).
+
 ## [1.1.2] - 2026-11-23
 
 ### Fixed
@@ -49,7 +55,8 @@ First stable release. Backend, frontend, and automated test coverage (RSpec + QU
 - Post-duplication confirmation: successfully duplicated rows link to their new topic and are disabled from resubmission; failures are reported per-item without aborting the rest of the batch.
 - Authorization gated on category permissions, an `event_duplicator_allowed_groups` site setting, and discourse-calendar's own event-creation permission.
 
-[Unreleased]: https://github.com/louking/discourse-event-duplicator/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/louking/discourse-event-duplicator/compare/v1.1.3...HEAD
+[1.1.3]: https://github.com/louking/discourse-event-duplicator/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/louking/discourse-event-duplicator/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/louking/discourse-event-duplicator/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/louking/discourse-event-duplicator/compare/v1.0.1...v1.1.0
