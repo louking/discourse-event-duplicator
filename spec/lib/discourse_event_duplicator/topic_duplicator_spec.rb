@@ -286,6 +286,23 @@ RSpec.describe DiscourseEventDuplicator::TopicDuplicator do
       expect(raw).to include('name="Spa location=Elsewhere"')
       expect(raw).to include('location="Circuit de Spa-Francorchamps"')
     end
+
+    it "accepts unquoted and single-quoted attribute values in the source tag" do
+      source_topic_with_text.first_post.update_column(
+        :raw,
+        "[event start=\"2026-08-30 15:00\" end=\"2026-08-30 17:00\" " \
+          "location='Circuit de Spa-Francorchamps' status=public timezone=Europe/Brussels]\n" \
+          "[/event]",
+      )
+
+      raw = duplicate.first_post.raw
+
+      expect(raw).to include('start="2027-08-29 15:00"')
+      expect(raw).to include('location="Circuit de Spa-Francorchamps"')
+      expect(raw).to include('status="public"')
+      expect(raw).to include('timezone="Europe/Brussels"')
+      expect(raw).not_to include("2026-08-30")
+    end
   end
 
   it "raises instead of creating a topic when the source post has no event tag" do

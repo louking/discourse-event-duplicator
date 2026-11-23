@@ -10,10 +10,12 @@ module ::DiscourseEventDuplicator
   # sync all apply exactly as they would for a hand-authored event post.
   class TopicDuplicator
     # Matches the opening `[event ...]` tag in a post's raw, capturing its
-    # attributes. Attribute values are double-quoted, as discourse-calendar's
-    # own composer builder writes them.
-    EVENT_TAG = /\[event((?:\s+[\w-]+="[^"]*")*)\s*\]/i
-    EVENT_ATTR = /([\w-]+)="([^"]*)"/
+    # attributes. discourse-calendar's composer writes double-quoted values,
+    # but the BBCode parser it cooks posts with also accepts single-quoted
+    # and unquoted ones (e.g. `status=public`), so hand-edited tags use them.
+    ATTR_VALUE = /"[^"]*"|'[^']*'|[^\s\]"']+/
+    EVENT_TAG = /\[event((?:\s+[\w-]+=(?:#{ATTR_VALUE}))*)\s*\]/i
+    EVENT_ATTR = /([\w-]+)=(?:"([^"]*)"|'([^']*)'|([^\s\]"']+))/
 
     # Raised when the source post's raw has no `[event ...]` tag. Such a
     # topic isn't an event topic, so it isn't duplicated.
@@ -103,7 +105,7 @@ module ::DiscourseEventDuplicator
       match = raw.match(EVENT_TAG)
       raise MissingEventTag if match.nil?
 
-      attrs = match[1].scan(EVENT_ATTR).to_h
+      attrs = match[1].scan(EVENT_ATTR).to_h { |key, *values| [key, values.compact.first] }
       attrs.merge!(date_attrs)
       # A title override should carry through to the event's own name too,
       # so the calendar widget doesn't keep showing the old name once the
